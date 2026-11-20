@@ -133,7 +133,10 @@
     typeSelect.appendChild(placeholder);
 
     BacklogStore.TYPES.forEach(function (type) {
-      var option = el("option", "", type);
+      // Capitalize the label for display, but keep the value lowercase
+      // so saved items continue to use the type key.
+      var label = type.charAt(0).toUpperCase() + type.slice(1);
+      var option = el("option", "", label);
       option.value = type;
       typeSelect.appendChild(option);
     });

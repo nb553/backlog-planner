@@ -15,7 +15,8 @@
     watch: "Binge Complete",
     play: "Game Cleared",
     read: "Last Page Turned",
-    build: "Shipped It"
+    build: "Shipped It",
+    move: "Touched Grass"
   };
 
   // 8x8 pixel pictures. "X" is a filled square, "." is empty. app.js turns
@@ -60,6 +61,16 @@
       "..XXXX..",
       ".X.XX.X.",
       "...XX..."
+    ],
+    move: [           // a mountain below a sun
+      "......X.",
+      ".....XXX",
+      "......X.",
+      "....X...",
+      "...XXX..",
+      "..XXXXX.",
+      ".XXXXXXX",
+      "XXXXXXXX"
     ]
   };
 

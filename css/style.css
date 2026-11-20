@@ -33,6 +33,7 @@
   --play: #a78bfa;
   --read: #ffc93c;
   --build: #4da8ff;
+  --move: #51cf66;
 
   /* Font stacks: the first font that exists is used, then the next. */
   --pixel: "Press Start 2P", "Courier New", monospace;
@@ -220,6 +221,7 @@ h2 {
 .cartridge[data-type="play"],  .mini-cart[data-type="play"]  { --type: var(--play); }
 .cartridge[data-type="read"],  .mini-cart[data-type="read"]  { --type: var(--read); }
 .cartridge[data-type="build"], .mini-cart[data-type="build"] { --type: var(--build); }
+.cartridge[data-type="move"],  .mini-cart[data-type="move"]  { --type: var(--move); }
 
 /* Why two layers? clip-path (used below to cut the corner) would also
    cut off a shadow on the same element. So the OUTER <li> carries the
@@ -614,6 +616,7 @@ h2 {
 .achievement[data-type="play"]  { --type: var(--play); }
 .achievement[data-type="read"]  { --type: var(--read); }
 .achievement[data-type="build"] { --type: var(--build); }
+.achievement[data-type="move"]  { --type: var(--move); }
 
 .achievement {
   position: relative;
@@ -705,6 +708,28 @@ h2 {
   background-size: 16px 16px;
   border: 3px dashed var(--paper);
   border-radius: 4px;
+}
+
+/* MOVE: a trail map, with a dashed route crossing a bright green card. */
+.achievement[data-type="move"] {
+  background: var(--move);
+  border: 3px solid var(--paper);
+  border-radius: 12px 4px;
+  overflow: hidden;
+}
+.achievement[data-type="move"]::before {
+  content: "";
+  position: absolute;
+  z-index: 0;
+  top: 52%;
+  left: 8%;
+  width: 84%;
+  border-top: 3px dashed rgba(27, 22, 64, 0.5);
+  transform: rotate(-18deg);
+}
+.achievement[data-type="move"] > * {
+  position: relative;
+  z-index: 1;
 }
 
 /* ---------------------------------------------------------------

@@ -29,6 +29,9 @@ test("every item type has a title and a valid 8x8 icon", function () {
     assert.ok(icon.join("").indexOf("X") !== -1, type + " icon is blank");
   });
 });
+test("move achievement is titled Touched Grass", function () {
+  assert.strictEqual(Ach.TITLES.move, "Touched Grass");
+});
 
 console.log("splitItems");
 test("separates items still on the shelf from completed ones", function () {

@@ -22,7 +22,7 @@ Each item has:
 | Field | Notes |
 |---|---|
 | Name | Free text |
-| Type | watch, play, read, build |
+| Type | watch, play, read, build, move (walks, workouts, and outdoor activities) |
 | Total size | Minutes. Required. Every item must have a real end. |
 | Minimum useful block | Minutes. The least time that makes starting worthwhile (e.g. 20 for an episode). |
 
@@ -176,11 +176,11 @@ backlog-planner/
 
 **Retro arcade cartridge shelf**, inspired by the playful console-style look of Hursty's RetroPie/EmulationStation themes (general spirit only, nothing copied).
 
-- **Palette:** deep indigo background, cream label stickers, hot pink for the main action. Cartridge colors by type: watch coral, play purple, read yellow, build blue. Type badges are capitalized, and the "Starts at" and "left of" lines are italic.
+- **Palette:** deep indigo background, cream label stickers, teal for the main action. Cartridge colors by type: watch coral, play purple, read yellow, build blue, move green. Type badges are capitalized, and the "Starts at" and "left of" lines are italic.
 - **Type:** Press Start 2P (pixel) for title, headings, buttons, and type badges. Plain system font for names and body text so long titles stay readable.
 - **Signature element:** each item is a cartridge with a chamfered corner, grip ridges, a cream label, and a segmented health bar (green, then yellow, then red as it drains).
 - **Decide for me wheel:** inspired by spinning game-cartridge carousels. The top three candidates are repeated around a six-slot drum that spins and eases to a stop. The winner pops up out of the drum with a bounce and a glow. One candidate means no spin, just the pop. Reduced-motion users get the pick without the spin.
-- **Achievements:** each type gets its own card shape and pixel icon: watch is a ticket stub, play a trophy plaque, read a bookmarked page, build a blueprint.
+- **Achievements:** each type gets its own card shape and pixel icon: watch is a ticket stub, play a trophy plaque, read a bookmarked page, build a blueprint, move a trail map.
 - **Note:** the pixel font loads from Google Fonts. Offline, it falls back to a monospace font and everything still works.
 
 ## Done when

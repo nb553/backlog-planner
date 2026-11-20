@@ -31,7 +31,7 @@
 
   // The allowed item types. Kept in one array so the validator, the
   // form's dropdown (step 2), and the loader all agree on the list.
-  var TYPES = ["watch", "play", "read", "build"];
+  var TYPES = ["watch", "play", "read", "build", "move"];
 
   // ---------------------------------------------------------------
   // SMALL HELPERS
@@ -126,7 +126,7 @@
    * The item shape:
    *   id               unique string
    *   name             string
-   *   type             "watch" | "play" | "read" | "build"
+   *   type             "watch" | "play" | "read" | "build" | "move"
    *   totalMinutes     whole number, the full "health bar"
    *   remainingMinutes whole number, starts equal to totalMinutes
    *   minBlockMinutes  whole number, the least time worth starting

@@ -63,6 +63,12 @@ test("accepts a valid item", function () {
   assert.strictEqual(Store.validateItem(good).ok, true);
 });
 
+test("accepts move and keeps the type lowercase", function () {
+  var input = { name: "Walk", type: "move", totalMinutes: 60, minBlockMinutes: 10 };
+  assert.strictEqual(Store.validateItem(input).ok, true);
+  assert.strictEqual(Store.createItem(input).type, "move");
+});
+
 test("rejects a blank name", function () {
   // Object.assign({}, good, { name: "   " }) means "a copy of good,
   // with name replaced by three spaces."
@@ -135,7 +141,8 @@ test("round-trips a list", function () {
   var store = fakeStorage();
   var items = [
     Store.createItem(good),
-    Store.createItem({ name: "Portfolio site", type: "build", totalMinutes: 600, minBlockMinutes: 30 })
+    Store.createItem({ name: "Portfolio site", type: "build", totalMinutes: 600, minBlockMinutes: 30 }),
+    Store.createItem({ name: "Walk", type: "move", totalMinutes: 60, minBlockMinutes: 10 })
   ];
   assert.strictEqual(Store.saveItems(items, store), true);
   // deepStrictEqual compares contents, not just whether it's the same object.
