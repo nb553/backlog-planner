@@ -95,4 +95,23 @@ test("each cartridge can log its minimum block through the shared result flow", 
   assert.ok(/render\(/.test(helper[1]));
 });
 
+console.log("hit effects");
+test("successful logs trigger effects from their describeHit result", function () {
+  var helper = app.match(/function applyLog\(item, minutes, message\) \{([\s\S]*?)\n  \}/);
+  assert.ok(helper, "shared log handler exists");
+  assert.ok(/var hitMessage = describeHit\(item, result\)/.test(helper[1]));
+  assert.ok(/showLogEffects\(item, result, oldHealthBar\)/.test(helper[1]));
+});
+test("hit effects skip reduced motion and style damage, flashes, and defeats", function () {
+  assert.ok(/function showLogEffects\(item, result, oldHealthBar\)/.test(app));
+  assert.ok(/if \(prefersReducedMotion\(\)\) return/.test(app));
+  assert.ok(/"-" \+ result\.dealt/.test(app));
+  assert.ok(/track\.classList\.add\("is-hit"\)/.test(app));
+  assert.ok(/el\("span", "defeat-burst"\)/.test(app));
+  [".damage-number", ".health-track.is-hit", ".defeat-burst"].forEach(function (selector) {
+    assert.ok(css.indexOf(selector) !== -1, selector + " effect style");
+  });
+  assert.ok(css.indexOf("prefers-reduced-motion: reduce") !== -1);
+});
+
 console.log("\n" + passed + " tests passed.");
