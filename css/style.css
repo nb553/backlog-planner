@@ -1,0 +1,756 @@
+/*
+ * style.css: the LOOK of Backlog Planner.
+ *
+ * Theme: a retro arcade cartridge shelf. Dark indigo background, pixel
+ * headings, and each item drawn as a game cartridge colored by its type.
+ *
+ * Reading order: variables -> page basics -> form -> cartridges.
+ */
+
+/* ---------------------------------------------------------------
+   1. VARIABLES
+   Custom properties (names starting with --) are values you define once
+   and reuse with var(--name). Change a color here and it updates
+   everywhere. They go on :root, which means "the whole page".
+   --------------------------------------------------------------- */
+:root {
+  --bg: #1b1640;          /* page background */
+  --panel: #2a2266;       /* form panel */
+  --edge: #4a3fa8;        /* borders and dividers */
+  --inset: #140f33;       /* dark "pressed in" areas: inputs, bar tracks */
+  --ink: #f5f0ff;         /* main text on dark */
+  --muted: #b9b0e0;       /* secondary text on dark */
+  --paper: #fff4d6;       /* cartridge label sticker */
+  --paper-ink: #1b1640;   /* text on light surfaces */
+  --accent: #ff3ea5;      /* the main button */
+  --accent-shadow: #a3126b;
+  --warn: #ffc93c;        /* focus rings and "mid" health */
+  --good: #3ddc97;        /* "high" health */
+  --bad: #ff5a5f;         /* errors and "low" health */
+
+  /* One color per item type. The cartridge picks one (see section 4). */
+  --watch: #ff6b6b;
+  --play: #a78bfa;
+  --read: #ffc93c;
+  --build: #4da8ff;
+
+  /* Font stacks: the first font that exists is used, then the next. */
+  --pixel: "Press Start 2P", "Courier New", monospace;
+  --body: system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
+
+  /* Tells the browser this page is dark, so built-in controls (the number
+     spinners, the dropdown list, scrollbars) are drawn dark too. */
+  color-scheme: dark;
+}
+
+/* ---------------------------------------------------------------
+   2. PAGE BASICS
+   --------------------------------------------------------------- */
+
+/* border-box makes width include padding and border, which makes sizing
+   far less surprising. Applied to everything with the * selector. */
+* {
+  box-sizing: border-box;
+}
+
+body {
+  margin: 0;
+  /* env(safe-area-inset-*) keeps content clear of phone notches and home
+     bars (it's 0 on a desktop). Needs viewport-fit=cover in index.html. */
+  padding:
+    calc(1.5rem + env(safe-area-inset-top, 0px))
+    calc(1rem + env(safe-area-inset-right, 0px))
+    calc(3rem + env(safe-area-inset-bottom, 0px))
+    calc(1rem + env(safe-area-inset-left, 0px));
+  background: var(--bg);
+  color: var(--ink);
+  font-family: var(--body);
+  font-size: 1rem;
+  line-height: 1.5;
+}
+
+/* Header and main share a centered column up to 60rem wide.
+   "margin: 0 auto" centers a block that has a max-width. */
+.masthead,
+main {
+  max-width: 60rem;
+  margin: 0 auto;
+}
+
+.masthead {
+  margin-bottom: 2rem;
+}
+
+h1,
+h2 {
+  font-family: var(--pixel);
+  font-weight: 400;     /* pixel fonts look wrong when made bold */
+  line-height: 1.5;
+}
+
+h1 {
+  margin: 0 0 0.5rem;
+  /* clamp(min, preferred, max) scales the size with the screen width
+     but never below or above the limits. */
+  font-size: clamp(1.1rem, 4.5vw, 1.8rem);
+  /* A hard offset shadow with no blur gives the classic pixel-art look. */
+  text-shadow: 3px 3px 0 var(--accent);
+}
+
+.masthead p {
+  margin: 0;
+  color: var(--muted);
+}
+
+h2 {
+  margin: 0 0 1rem;
+  padding-bottom: 0.75rem;
+  font-size: 0.85rem;
+  border-bottom: 4px solid var(--edge);
+}
+
+/* Keyboard users need to see where focus is. This yellow ring appears
+   on any focused control. :focus-visible skips it for mouse clicks. */
+:focus-visible {
+  outline: 3px solid var(--warn);
+  outline-offset: 2px;
+}
+
+/* ---------------------------------------------------------------
+   3. THE ADD FORM
+   --------------------------------------------------------------- */
+.panel {
+  margin-bottom: 2.5rem;
+  padding: 1.25rem;
+  background: var(--panel);
+  border: 3px solid var(--edge);
+  border-radius: 8px;
+}
+
+/* CSS grid: auto-fit makes as many columns as fit, each at least 13rem
+   wide, sharing the leftover space equally. One column on a phone,
+   several on a desktop, with no media query needed. */
+.form-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(13rem, 1fr));
+  gap: 1rem 1.25rem;
+}
+
+.field label {
+  display: block;
+  margin-bottom: 0.4rem;
+  font-weight: 600;
+}
+
+/* 1rem (16px) text stops iPhones from zooming in when you tap a field. */
+.field input,
+.field select {
+  width: 100%;
+  min-height: 3rem;          /* a comfortable tap target */
+  padding: 0.6rem 0.75rem;
+  background: var(--inset);
+  color: var(--ink);
+  font: inherit;             /* use the page font, not the browser default */
+  border: 2px solid var(--edge);
+  border-radius: 6px;
+}
+
+.hint {
+  margin: 0.4rem 0 0;
+  color: var(--muted);
+  font-size: 0.85rem;
+}
+
+/* The error list. The [hidden] rule matters: our "display: block"
+   would otherwise override the hidden attribute, so we restate it. */
+.errors {
+  margin: 1.25rem 0 0;
+  padding: 0.75rem 1rem 0.75rem 2rem;
+  background: rgba(255, 90, 95, 0.15);
+  border-left: 4px solid var(--bad);
+  border-radius: 4px;
+}
+.errors[hidden] {
+  display: none;
+}
+
+/* The main button is styled like an arcade key: a solid "edge" shadow
+   underneath, which disappears when pressed so it looks like it sinks. */
+.button {
+  margin-top: 1.25rem;
+  min-height: 3rem;
+  padding: 0.75rem 1.5rem;
+  background: var(--accent);
+  color: var(--paper-ink);
+  font-family: var(--pixel);
+  font-size: 0.75rem;
+  border: 0;
+  border-radius: 6px;
+  box-shadow: 0 4px 0 var(--accent-shadow);
+  cursor: pointer;
+}
+.button:active {
+  transform: translateY(4px);
+  box-shadow: 0 0 0 var(--accent-shadow);
+}
+
+/* ---------------------------------------------------------------
+   4. THE SHELF AND CARTRIDGES
+   --------------------------------------------------------------- */
+.status {
+  margin: 0 0 1.25rem;
+  color: var(--muted);
+}
+
+/* Remove the bullet points and default indent from the list, then lay
+   the cartridges out in a responsive grid (same trick as the form). */
+.shelf {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(14rem, 1fr));
+  gap: 1.5rem;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+/* Each <li> gets a type color through its data-type attribute.
+   The selector [data-type="watch"] matches <li data-type="watch">.
+   It sets --type, which the cartridge body then uses. */
+.cartridge[data-type="watch"], .mini-cart[data-type="watch"] { --type: var(--watch); }
+.cartridge[data-type="play"],  .mini-cart[data-type="play"]  { --type: var(--play); }
+.cartridge[data-type="read"],  .mini-cart[data-type="read"]  { --type: var(--read); }
+.cartridge[data-type="build"], .mini-cart[data-type="build"] { --type: var(--build); }
+
+/* Why two layers? clip-path (used below to cut the corner) would also
+   cut off a shadow on the same element. So the OUTER <li> carries the
+   shadow, and the INNER body is the one that gets clipped. */
+.cartridge {
+  filter: drop-shadow(0 5px 0 rgba(0, 0, 0, 0.45));
+}
+
+.cartridge-body {
+  display: flex;
+  flex-direction: column;
+  gap: 0.6rem;
+  height: 100%;
+  padding: 0 0.9rem 0.9rem;
+  background: var(--type);
+  color: var(--paper-ink);
+  /* polygon() lists the corner points of the visible shape. This one
+     cuts a 22px diagonal off the top-right corner, like a real cartridge. */
+  clip-path: polygon(0 0, calc(100% - 22px) 0, 100% 22px, 100% 100%, 0 100%);
+  border-radius: 8px 0 8px 8px;
+}
+
+/* The grip ridges: a repeating gradient makes a stripe pattern.
+   3px of dark, then 6px of clear, repeated across the width.
+   The negative side margins stretch it edge to edge past the padding. */
+.cartridge-grip {
+  height: 16px;
+  margin: 0 -0.9rem;
+  background: repeating-linear-gradient(
+    90deg,
+    rgba(27, 22, 64, 0.28) 0 3px,
+    transparent 3px 9px
+  );
+}
+
+.cartridge-type {
+  margin: 0.2rem 0 0;
+  font-family: var(--pixel);
+  font-size: 0.65rem;
+  /* Display only: shows "Play" while the saved data stays "play". */
+  text-transform: capitalize;
+}
+
+/* The cream label sticker. flex: 1 makes it grow to fill spare height, so
+   the health bars line up along the bottom even when names wrap. */
+.cartridge-label {
+  flex: 1;
+  padding: 0.7rem 0.75rem;
+  background: var(--paper);
+  border-radius: 4px;
+}
+
+.cartridge-name {
+  margin: 0 0 0.35rem;
+  font-size: 1.05rem;
+  line-height: 1.25;
+  overflow-wrap: anywhere;   /* long words wrap instead of overflowing */
+}
+
+.cartridge-block {
+  margin: 0;
+  font-size: 0.85rem;
+  font-style: italic;
+}
+
+/* The health bar: a dark track with a colored fill inside.
+   The fill's width comes from --pct, which app.js sets per item. */
+.health-track {
+  position: relative;
+  height: 1.1rem;
+  background: var(--inset);
+  border: 2px solid var(--paper-ink);
+  border-radius: 4px;
+  overflow: hidden;
+}
+
+.health-fill {
+  width: var(--pct);
+  height: 100%;
+  background: var(--bar);
+}
+.health-fill[data-level="high"] { --bar: var(--good); }
+.health-fill[data-level="mid"]  { --bar: var(--warn); }
+.health-fill[data-level="low"]  { --bar: var(--bad); }
+
+/* The segment look: an overlay (::after) of thin dark gaps drawn on top
+   of the bar. pointer-events: none lets clicks pass through it. */
+.health-track::after {
+  content: "";
+  position: absolute;
+  inset: 0;
+  background: repeating-linear-gradient(
+    90deg,
+    transparent 0 9px,
+    var(--inset) 9px 11px
+  );
+  pointer-events: none;
+}
+
+.health-text {
+  margin: 0.4rem 0 0;
+  font-size: 0.8rem;
+  font-weight: 600;
+  font-style: italic;
+}
+
+/* ---------------------------------------------------------------
+   5. LOGGING MINUTES (the form at the bottom of each cartridge)
+   --------------------------------------------------------------- */
+
+/* The global yellow focus ring (section 2) would vanish on the yellow
+   "read" cartridge, so inside cartridges the ring is dark instead. */
+.cartridge :focus-visible {
+  outline-color: var(--paper-ink);
+}
+
+/* flex-wrap lets the error message drop onto its own line below
+   the input and button. */
+.log-form {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.5rem;
+}
+
+.log-input {
+  flex: 1;
+  min-width: 0;            /* lets a flex item shrink below its content width */
+  min-height: 2.75rem;     /* comfortable tap target */
+  padding: 0.4rem 0.6rem;
+  background: var(--inset);
+  color: var(--ink);
+  font: inherit;
+  border: 2px solid var(--paper-ink);
+  border-radius: 6px;
+}
+
+/* A smaller sibling of the main arcade-key button: dark with light text,
+   so it reads clearly on every cartridge color. */
+.log-button {
+  min-height: 2.75rem;
+  padding: 0.4rem 1rem;
+  background: var(--paper-ink);
+  color: var(--paper);
+  font-family: var(--pixel);
+  font-size: 0.65rem;
+  border: 0;
+  border-radius: 6px;
+  box-shadow: 0 3px 0 rgba(0, 0, 0, 0.4);
+  cursor: pointer;
+}
+.log-button:active {
+  transform: translateY(3px);
+  box-shadow: 0 0 0 rgba(0, 0, 0, 0.4);
+}
+
+/* flex-basis: 100% makes the message fill a whole row. The [hidden]
+   rule is restated for the same reason as the form errors (section 3). */
+.log-error {
+  flex-basis: 100%;
+  margin: 0;
+  padding: 0.4rem 0.6rem;
+  background: var(--paper-ink);
+  color: var(--paper);
+  font-size: 0.85rem;
+  font-weight: 600;
+  border-radius: 4px;
+}
+.log-error[hidden] {
+  display: none;
+}
+
+
+/* ---------------------------------------------------------------
+   6. DECIDE FOR ME (the cartridge wheel)
+   --------------------------------------------------------------- */
+
+/* Anything with the hidden attribute stays hidden, even if another rule
+   below sets display on it. */
+[hidden] {
+  display: none !important;
+}
+
+.decide-row {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: flex-end;
+  gap: 1rem;
+}
+.decide-row .field {
+  flex: 1 1 12rem;
+}
+.decide-row .button {
+  margin-top: 0;
+}
+
+.decide-message {
+  margin: 1rem 0 0;
+  padding: 0.75rem 1rem;
+  background: rgba(255, 90, 95, 0.15);
+  border-left: 4px solid var(--bad);
+  border-radius: 4px;
+}
+
+.closest-prompt {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 1rem;
+  margin-top: 1rem;
+}
+.closest-prompt p {
+  flex: 1 1 14rem;
+  margin: 0;
+}
+
+/* A calmer second button style for "Reroll" and "Show it anyway". */
+.button-secondary {
+  background: var(--edge);
+  color: var(--ink);
+  box-shadow: 0 4px 0 var(--inset);
+}
+.button:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+  transform: none;
+}
+
+/* The wheel stage. Cartridges are placed by app.js (left, transform,
+   opacity, z-index) on every animation frame. isolation: isolate keeps
+   their z-index values inside this box. */
+.wheel {
+  position: relative;
+  isolation: isolate;
+  max-width: 32rem;
+  height: 17rem;
+  margin: 1.5rem auto 0;
+  pointer-events: none;
+}
+
+.wheel-slot {
+  position: absolute;
+  bottom: 2.75rem;
+  left: 50%;
+  width: 7.5rem;
+  transform-origin: 50% 100%;
+  filter: drop-shadow(0 4px 0 rgba(0, 0, 0, 0.4));
+}
+.wheel-slot.is-winner {
+  filter: drop-shadow(0 0 12px var(--accent)) drop-shadow(0 4px 0 rgba(0, 0, 0, 0.4));
+}
+
+/* The drum. It sits IN FRONT of the cartridges (z-index above the highest
+   slot), so their bottoms look tucked into slots and a lifted cartridge
+   appears to rise out of the drum. */
+.wheel-base {
+  position: absolute;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  height: 6rem;
+  z-index: 1000;
+  background: var(--inset);
+  border: 3px solid var(--edge);
+  border-top: 8px solid var(--accent);
+  border-radius: 0.75rem 0.75rem 2rem 2rem;
+  box-shadow: 0 6px 0 rgba(0, 0, 0, 0.35);
+}
+
+/* A small cartridge, same look as the shelf ones. */
+.mini-cart {
+  display: flex;
+  flex-direction: column;
+  gap: 0.4rem;
+  height: 9.5rem;
+  padding: 0 0.6rem 0.6rem;
+  background: var(--type);
+  color: var(--paper-ink);
+  clip-path: polygon(0 0, calc(100% - 16px) 0, 100% 16px, 100% 100%, 0 100%);
+  border-radius: 6px 0 6px 6px;
+}
+.mini-grip {
+  height: 12px;
+  margin: 0 -0.6rem;
+  background: repeating-linear-gradient(90deg, rgba(27, 22, 64, 0.28) 0 3px, transparent 3px 9px);
+}
+.mini-type {
+  margin: 0.1rem 0 0;
+  font-family: var(--pixel);
+  font-size: 0.55rem;
+  text-transform: capitalize;
+}
+/* The name label: clamped to two lines so long names can't break the layout. */
+.mini-name {
+  display: -webkit-box;
+  -webkit-line-clamp: 2;
+  -webkit-box-orient: vertical;
+  margin: 0;
+  padding: 0.45rem 0.5rem;
+  overflow: hidden;
+  overflow-wrap: anywhere;
+  background: var(--paper);
+  border-radius: 4px;
+  font-size: 0.85rem;
+  font-weight: 700;
+  line-height: 1.2;
+}
+
+.result {
+  margin-top: 1rem;
+  padding: 1.25rem 1rem;
+  text-align: center;
+  background: var(--inset);
+  border: 3px solid var(--edge);
+  border-radius: 8px;
+}
+.result-label {
+  margin: 0 0 0.5rem;
+  color: var(--muted);
+  font-family: var(--pixel);
+  font-size: 0.65rem;
+}
+.result-name {
+  margin: 0;
+  font-size: 1.6rem;
+  font-weight: 700;
+  line-height: 1.2;
+  overflow-wrap: anywhere;
+}
+.result-detail {
+  margin: 0.5rem 0 0;
+  color: var(--muted);
+  font-style: italic;
+}
+.result-actions {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: center;
+  gap: 0.75rem;
+  margin-top: 1.25rem;
+}
+.result-actions .button {
+  margin-top: 0;
+}
+
+/* ---------------------------------------------------------------
+   7. LOCK NOTE, DELETE CONTROLS, AND ACHIEVEMENTS
+   --------------------------------------------------------------- */
+.lock-note {
+  margin: 1rem 0 0;
+  color: var(--muted);
+  font-style: italic;
+}
+
+/* Delete / confirm. These sit on colored cartridges and cards, so they use
+   the dark ink color, which reads well on all four type colors. */
+.delete-control {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: flex-end;
+  gap: 0.5rem;
+}
+.delete-question {
+  font-size: 0.85rem;
+  font-weight: 600;
+}
+.edit-button,
+.delete-button,
+.delete-yes,
+.delete-keep {
+  min-height: 2.75rem;
+  padding: 0.4rem 0.9rem;
+  background: transparent;
+  color: var(--paper-ink);
+  font: inherit;
+  font-size: 0.85rem;
+  font-weight: 700;
+  border: 2px solid var(--paper-ink);
+  border-radius: 6px;
+  cursor: pointer;
+}
+.delete-yes {
+  background: var(--paper-ink);
+  color: var(--paper);
+}
+
+/* Achievement cards. Shared basics first, then one look per type. */
+.achievements-section {
+  margin-top: 3rem;
+}
+.achievement[data-type="watch"] { --type: var(--watch); }
+.achievement[data-type="play"]  { --type: var(--play); }
+.achievement[data-type="read"]  { --type: var(--read); }
+.achievement[data-type="build"] { --type: var(--build); }
+
+.achievement {
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 0.4rem;
+  padding: 1.25rem 1rem 0.75rem;
+  background: var(--type);
+  color: var(--paper-ink);
+  text-align: center;
+  border-radius: 10px;
+  filter: drop-shadow(0 5px 0 rgba(0, 0, 0, 0.45));
+}
+.achievement-icon {
+  width: 3rem;
+  height: 3rem;
+  shape-rendering: crispEdges;   /* sharp pixel edges, no blurring */
+}
+.achievement-title {
+  margin: 0;
+  font-family: var(--pixel);
+  font-size: 0.6rem;
+  line-height: 1.6;
+}
+.achievement-name {
+  margin: 0;
+  font-size: 1.15rem;
+  line-height: 1.25;
+  overflow-wrap: anywhere;
+}
+.achievement-stats,
+.achievement-date {
+  margin: 0;
+  font-size: 0.85rem;
+  font-style: italic;
+}
+.achievement .delete-control {
+  width: 100%;
+  margin-top: 0.25rem;
+}
+
+/* WATCH: a ticket stub. Two radial gradients paint half-circles in the
+   page color at the middle of each side, which looks like punched notches. */
+.achievement[data-type="watch"] {
+  background:
+    radial-gradient(circle at 0 50%, var(--bg) 0 0.7rem, transparent 0.75rem),
+    radial-gradient(circle at 100% 50%, var(--bg) 0 0.7rem, transparent 0.75rem),
+    var(--watch);
+  border-radius: 6px;
+}
+.achievement[data-type="watch"] .achievement-stats {
+  width: 100%;
+  padding-top: 0.5rem;
+  border-top: 2px dashed rgba(27, 22, 64, 0.55);   /* the perforation line */
+}
+
+/* PLAY: a trophy plaque with a double frame. */
+.achievement[data-type="play"] {
+  border: 4px double var(--paper);
+  border-radius: 14px;
+  box-shadow: inset 0 0 0 3px rgba(27, 22, 64, 0.35);
+}
+
+/* READ: a cream page with a bookmark ribbon hanging from the top edge. */
+.achievement[data-type="read"] {
+  padding-top: 2.5rem;
+  background: var(--paper);
+  border: 3px solid var(--read);
+  border-radius: 4px 4px 10px 10px;
+}
+.achievement[data-type="read"]::before {
+  content: "";
+  position: absolute;
+  top: -3px;
+  right: 1rem;
+  width: 1.5rem;
+  height: 3rem;
+  background: var(--read);
+  clip-path: polygon(0 0, 100% 0, 100% 100%, 50% 78%, 0 100%);   /* the V notch */
+}
+
+/* BUILD: a blueprint. Two thin gradients make a grid on blue paper. */
+.achievement[data-type="build"] {
+  background-color: var(--build);
+  background-image:
+    linear-gradient(rgba(255, 255, 255, 0.28) 1px, transparent 1px),
+    linear-gradient(90deg, rgba(255, 255, 255, 0.28) 1px, transparent 1px);
+  background-size: 16px 16px;
+  border: 3px dashed var(--paper);
+  border-radius: 4px;
+}
+
+/* ---------------------------------------------------------------
+   8. BACKUP
+   --------------------------------------------------------------- */
+.backup-section {
+  margin-top: 3rem;
+  margin-bottom: 0;
+}
+.backup-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 1rem;
+  margin-top: 1rem;
+}
+.backup-actions .button {
+  margin-top: 0;
+}
+.backup-message {
+  margin: 1rem 0 0;
+  padding: 0.75rem 1rem;
+  background: rgba(61, 220, 151, 0.15);
+  border-left: 4px solid var(--good);
+  border-radius: 4px;
+}
+.backup-message.is-error {
+  background: rgba(255, 90, 95, 0.15);
+  border-left-color: var(--bad);
+}
+
+/* ---------------------------------------------------------------
+   9. EDITING (the add form doubles as the edit form)
+   --------------------------------------------------------------- */
+.edit-note {
+  margin: 0 0 1rem;
+  padding: 0.6rem 0.9rem;
+  background: rgba(255, 255, 255, 0.08);
+  border-left: 4px solid var(--warn);
+  border-radius: 4px;
+}
+.form-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 1rem;
+  margin-top: 1.25rem;
+}
+.form-actions .button {
+  margin-top: 0;
+}

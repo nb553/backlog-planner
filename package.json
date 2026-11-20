@@ -1,0 +1,9 @@
+{
+  "name": "backlog-planner",
+  "version": "1.0.0",
+  "description": "Turn a big backlog into small, doable blocks. A cartridge wheel picks something that fits your time.",
+  "private": true,
+  "scripts": {
+    "test": "node tests/storage.test.js && node tests/decide.test.js && node tests/wheel.test.js && node tests/achievements.test.js && node tests/page.test.js"
+  }
+}

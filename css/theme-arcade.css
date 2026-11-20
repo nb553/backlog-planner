@@ -1,0 +1,357 @@
+/*
+ * theme-arcade.css (DRAFT): a 90s arcade beat-'em-up look.
+ *
+ * Inspired by the style of classic side-scrolling arcade games: bold
+ * outlined comic lettering, bright menu-blue panels, HUD health bars,
+ * hazard stripes, blinking prompts, and CRT scanlines. It is an original
+ * design: no characters, logos, or artwork from any game.
+ *
+ * HOW IT WORKS
+ * Turn it on by putting data-theme="arcade" on the <html> tag and loading
+ * this file AFTER style.css. Most of the change comes from the variables
+ * in the first block (style.css paints everything with them). The rules
+ * after that add the few things variables can't do.
+ *
+ * Not linked from index.html yet. It becomes a selectable theme when the
+ * themes feature is built (see roadmap.md).
+ */
+
+/* ---------------------------------------------------------------
+   1. VARIABLES: same names as style.css, arcade values.
+   "html[data-theme]" is more specific than ":root", so these win.
+   --------------------------------------------------------------- */
+html[data-theme="arcade"] {
+  --bg: #0b0b2b;
+  --panel: #1f46e0;        /* arcade menu blue */
+  --edge: #ffffff;         /* white inner borders */
+  --inset: #000000;
+  --ink: #ffffff;
+  --muted: #cfe0ff;
+  --paper: #fff6d8;
+  --paper-ink: #000000;    /* the thick black outline color */
+  --accent: #e8201f;
+  --accent-shadow: #7a0b0b;
+  --warn: #ff9d00;         /* mid health */
+  --good: #ffe100;         /* full health is yellow, like an arcade HUD */
+  --bad: #ff2a2a;
+
+  --watch: #ff3b30;
+  --play: #a855f7;
+  --read: #ffd400;
+  --build: #2f7bff;
+
+  --display: "Bangers", "Impact", "Arial Black", sans-serif;
+
+  /* Text with a thick black outline, built from eight offset shadows.
+     Used on anything that sits on a bright background. */
+  --outline: -2px -2px 0 #000, 2px -2px 0 #000, -2px 2px 0 #000, 2px 2px 0 #000,
+             0 -2px 0 #000, 0 2px 0 #000, -2px 0 0 #000, 2px 0 0 #000;
+  --outline-big: -4px -4px 0 #000, 4px -4px 0 #000, -4px 4px 0 #000, 4px 4px 0 #000,
+                 0 -4px 0 #000, 0 4px 0 #000, -4px 0 0 #000, 4px 0 0 #000;
+
+  /* Yellow-and-black warning stripes, used in three places below. */
+  --hazard: repeating-linear-gradient(45deg, #000 0 8px, #ffe100 8px 16px);
+}
+
+/* ---------------------------------------------------------------
+   2. PAGE, MARQUEE, AND HEADINGS
+   --------------------------------------------------------------- */
+
+/* CRT scanlines: thin dark lines over the whole page. pointer-events: none
+   lets clicks pass through. Kept faint so text stays readable. */
+[data-theme="arcade"] body::after {
+  content: "";
+  position: fixed;
+  inset: 0;
+  z-index: 9999;
+  pointer-events: none;
+  background: repeating-linear-gradient(0deg, rgba(0, 0, 0, 0.16) 0 1px, transparent 1px 3px);
+}
+
+/* The title area becomes a cabinet marquee. A dotted border looks like a
+   row of light bulbs. */
+[data-theme="arcade"] .masthead {
+  padding: 1.5rem 1rem 1.25rem;
+  text-align: center;
+  background: linear-gradient(#e8201f, #7a0b0b);
+  border: 6px dotted #ffe100;
+  outline: 4px solid #000;
+  box-shadow: 6px 6px 0 #000;
+}
+[data-theme="arcade"] h1 {
+  margin: 0 0 0.75rem;
+  font-family: var(--display);
+  font-size: clamp(2.2rem, 10vw, 4rem);
+  letter-spacing: 0.04em;
+  line-height: 1;
+  text-transform: uppercase;
+  color: #ffe100;
+  text-shadow: var(--outline-big), 0 8px 0 #000;
+  transform: skewX(-8deg);    /* leaning letters = speed */
+}
+[data-theme="arcade"] .masthead p {
+  color: #fff;
+  font-family: var(--pixel);
+  font-size: 0.7rem;
+  text-shadow: var(--outline);
+}
+
+/* Section headings become red "stage banners". */
+[data-theme="arcade"] h2 {
+  display: inline-block;
+  margin-bottom: 1.25rem;
+  padding: 0.3rem 1rem;
+  font-family: var(--display);
+  font-size: 1.5rem;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  color: #fff;
+  text-shadow: var(--outline);
+  background: var(--accent);
+  border: 4px solid #000;
+  box-shadow: 4px 4px 0 #000;
+  transform: skewX(-8deg);
+}
+
+/* ---------------------------------------------------------------
+   3. PANELS, FIELDS, BUTTONS
+   --------------------------------------------------------------- */
+
+/* Menu boxes: blue gradient, black frame, white inner line, hard shadow. */
+[data-theme="arcade"] .panel {
+  padding: 1.5rem 1.25rem;
+  background: linear-gradient(#2b55f0, #14288f);
+  border: 4px solid #000;
+  border-radius: 4px;
+  box-shadow: inset 0 0 0 3px #fff, 6px 6px 0 #000;
+}
+[data-theme="arcade"] .field label {
+  text-shadow: var(--outline);
+}
+[data-theme="arcade"] .field input,
+[data-theme="arcade"] .field select,
+[data-theme="arcade"] .log-input {
+  background: #000;
+  color: #ffe100;
+  font-family: var(--pixel);
+  font-size: 0.8rem;
+  border: 3px solid #fff;
+  border-radius: 0;
+}
+
+/* The main button is a yellow "PRESS START" key. */
+[data-theme="arcade"] .button {
+  background: #ffe100;
+  color: #000;
+  border: 4px solid #000;
+  border-radius: 0;
+  box-shadow: 0 5px 0 #8a6a00;
+}
+[data-theme="arcade"] .button:active {
+  transform: translateY(5px);
+  box-shadow: none;
+}
+[data-theme="arcade"] .button-secondary {
+  background: #14288f;
+  color: #fff;
+  border-color: #fff;
+  box-shadow: 0 5px 0 #000;
+}
+[data-theme="arcade"] .log-button {
+  background: var(--accent);
+  color: #fff;
+  border: 3px solid #000;
+  border-radius: 0;
+  box-shadow: 0 3px 0 #000;
+}
+
+/* ---------------------------------------------------------------
+   4. CARTRIDGES AS ARCADE HUD CARDS
+   --------------------------------------------------------------- */
+[data-theme="arcade"] .cartridge {
+  filter: drop-shadow(5px 5px 0 #000);
+}
+/* No cut corner here (clip-path would hide the outline). A black frame
+   plus a white inner line instead. */
+[data-theme="arcade"] .cartridge-body {
+  clip-path: none;
+  border: 4px solid #000;
+  border-radius: 0;
+  box-shadow: inset 0 0 0 3px #fff;
+}
+[data-theme="arcade"] .cartridge-grip,
+[data-theme="arcade"] .mini-grip {
+  background: var(--hazard);
+}
+[data-theme="arcade"] .cartridge-type,
+[data-theme="arcade"] .mini-type {
+  color: #fff;
+  text-shadow: var(--outline);
+}
+/* The name label becomes a black name plate with yellow comic lettering. */
+[data-theme="arcade"] .cartridge-label {
+  background: #000;
+  color: #ffe100;
+  border: 2px solid #fff;
+  border-radius: 0;
+}
+[data-theme="arcade"] .cartridge-name {
+  font-family: var(--display);
+  font-size: 1.5rem;
+  font-weight: 400;
+  letter-spacing: 0.03em;
+  line-height: 1.05;
+  text-transform: uppercase;
+}
+[data-theme="arcade"] .cartridge-block {
+  color: #fff;
+}
+
+/* Health bar: yellow on dark red, so lost health shows as red behind it. */
+[data-theme="arcade"] .health-track {
+  height: 1.25rem;
+  background: #5a0000;
+  border: 3px solid #000;
+  border-radius: 0;
+  box-shadow: 0 0 0 2px #fff;
+}
+[data-theme="arcade"] .health-text {
+  color: #fff;
+  font-size: 0.85rem;
+  text-shadow: var(--outline);
+}
+
+/* ---------------------------------------------------------------
+   5. THE WHEEL AS A CHARACTER SELECT
+   --------------------------------------------------------------- */
+[data-theme="arcade"] .wheel {
+  margin-top: 2.75rem;     /* room for the cursor above the stage */
+}
+
+/* A "1P" cursor above the front slot, like a character-select screen.
+   "\25BC" is a down-pointing triangle. */
+[data-theme="arcade"] .wheel::after {
+  content: "1P \25BC";
+  position: absolute;
+  top: -2.5rem;
+  left: 50%;
+  z-index: 2000;
+  padding: 0.4rem 0.6rem;
+  color: #fff;
+  font-family: var(--pixel);
+  font-size: 0.65rem;
+  background: var(--accent);
+  border: 3px solid #000;
+  transform: translateX(-50%);
+}
+
+/* The platform the cartridges stand on, with a hazard-stripe top edge. */
+[data-theme="arcade"] .wheel-base {
+  background: #0a0a1f;
+  border: 4px solid #fff;
+  border-radius: 0;
+  box-shadow: 0 6px 0 #000;
+}
+[data-theme="arcade"] .wheel-base::before {
+  content: "";
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  height: 14px;
+  background: var(--hazard);
+}
+
+[data-theme="arcade"] .wheel-slot {
+  filter: drop-shadow(4px 4px 0 #000);
+}
+[data-theme="arcade"] .wheel-slot.is-winner {
+  filter: drop-shadow(0 0 14px #ffe100) drop-shadow(4px 4px 0 #000);
+}
+[data-theme="arcade"] .mini-cart {
+  clip-path: none;
+  border: 3px solid #000;
+  border-radius: 0;
+  box-shadow: inset 0 0 0 2px #fff;
+}
+[data-theme="arcade"] .mini-name {
+  color: #ffe100;
+  font-family: var(--display);
+  font-size: 1.05rem;
+  font-weight: 400;
+  letter-spacing: 0.03em;
+  text-transform: uppercase;
+  background: #000;
+  border: 2px solid #fff;
+  border-radius: 0;
+}
+
+/* The result card: a black "stage title" screen. */
+[data-theme="arcade"] .result {
+  background: #000;
+  border: 4px solid #fff;
+  border-radius: 0;
+  box-shadow: 6px 6px 0 #000;
+}
+[data-theme="arcade"] .result-label {
+  color: #ffe100;
+}
+[data-theme="arcade"] .result-name {
+  font-family: var(--display);
+  font-size: clamp(2rem, 9vw, 3rem);
+  font-weight: 400;
+  text-transform: uppercase;
+  color: #ffe100;
+  text-shadow: var(--outline), 3px 5px 0 #e8201f;
+}
+[data-theme="arcade"] .lock-note {
+  color: #ffe100;
+  font-family: var(--pixel);
+  font-size: 0.65rem;
+  font-style: normal;
+  line-height: 1.8;
+}
+
+/* ---------------------------------------------------------------
+   6. ACHIEVEMENTS AS "STAGE CLEAR" CARDS
+   (Each type keeps its own shape from style.css.)
+   --------------------------------------------------------------- */
+[data-theme="arcade"] .achievement {
+  outline: 4px solid #000;
+  filter: drop-shadow(5px 5px 0 #000);
+}
+[data-theme="arcade"] .achievement-title::before {
+  content: "\2605 ";       /* a star */
+}
+[data-theme="arcade"] .achievement-title::after {
+  content: " \2605";
+}
+[data-theme="arcade"] .achievement-name {
+  font-family: var(--display);
+  font-size: 1.6rem;
+  font-weight: 400;
+  letter-spacing: 0.03em;
+  line-height: 1.05;
+  text-transform: uppercase;
+}
+
+/* ---------------------------------------------------------------
+   7. MOTION (only for people who haven't asked for less motion)
+   --------------------------------------------------------------- */
+@media (prefers-reduced-motion: no-preference) {
+  /* The Decide button glows like a "PRESS START" prompt. */
+  [data-theme="arcade"] #decide-button:not(:disabled) {
+    animation: arcade-pulse 1.1s ease-in-out infinite;
+  }
+  /* The cursor and the result label blink. */
+  [data-theme="arcade"] .wheel::after,
+  [data-theme="arcade"] .result-label {
+    animation: arcade-blink 1s steps(1) infinite;
+  }
+  @keyframes arcade-pulse {
+    50% { box-shadow: 0 5px 0 #8a6a00, 0 0 18px 4px #ffe100; }
+  }
+  @keyframes arcade-blink {
+    50% { opacity: 0.25; }
+  }
+}

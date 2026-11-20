@@ -1,0 +1,200 @@
+<!--
+  index.html: the STRUCTURE of the page.
+
+  HTML says WHAT is on the page. css/style.css says how it LOOKS.
+  js/app.js says what it DOES. This text is an HTML comment: the browser
+  ignores it and users never see it.
+-->
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+  <title>Backlog Planner</title>
+  <meta name="description" content="Turn a big backlog into small, doable blocks. A cartridge wheel picks something that fits your time.">
+
+  <!-- Colors the phone's browser bar to match the page. -->
+  <meta name="theme-color" content="#1b1640">
+
+  <!-- A tab icon drawn from an emoji inside an inline SVG, so no image
+       file is needed (and the browser doesn't go looking for favicon.ico). -->
+  <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'%3E%3Ctext y='.9em' font-size='90'%3E🎮%3C/text%3E%3C/svg%3E">
+
+  <!--
+    The pixel font (Press Start 2P) comes from Google Fonts. The two
+    "preconnect" lines open the connection early so the font loads faster.
+    If the font can't load (offline, blocked), style.css falls back to a
+    monospace font and the app still works.
+  -->
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Press+Start+2P&display=swap" rel="stylesheet">
+
+  <!-- Our own stylesheet. It loads in the <head> so the page never flashes unstyled. -->
+  <link rel="stylesheet" href="css/style.css">
+</head>
+
+<body>
+  <!-- <header> holds the page's title area. -->
+  <header class="masthead">
+    <h1>Backlog Planner</h1>
+    <p>Big backlogs, small blocks.</p>
+  </header>
+
+  <main>
+    <!--
+      Section 1: Decide for me. Type your minutes, press the button, and the
+      wheel spins. The wheel is decoration (aria-hidden), so the "result"
+      block underneath carries the answer for screen readers.
+      Everything with the hidden attribute starts out invisible; app.js
+      shows it when needed.
+    -->
+    <section class="panel" aria-labelledby="decide-heading">
+      <h2 id="decide-heading">Decide for me</h2>
+
+      <form id="decide-form" novalidate>
+        <div class="decide-row">
+          <div class="field">
+            <label for="minutes">How many minutes do you have?</label>
+            <input id="minutes" type="number" inputmode="numeric" min="1" step="1">
+          </div>
+          <button type="submit" id="decide-button" class="button">Decide for me</button>
+        </div>
+      </form>
+
+      <!-- Shown while Decide is locked (after a pick, until you log time). -->
+      <p id="lock-note" class="lock-note" hidden>Locked in. Log time on something to unlock a new pick.</p>
+
+      <p id="decide-message" class="decide-message" aria-live="polite" hidden></p>
+
+      <!-- Shown when nothing fits: the person chooses whether to see the closest match. -->
+      <div id="closest-prompt" class="closest-prompt" hidden>
+        <p id="closest-text"></p>
+        <button type="button" id="anyway-button" class="button button-secondary">Show it anyway</button>
+      </div>
+
+      <div id="wheel" class="wheel" aria-hidden="true" hidden>
+        <div id="wheel-slots"></div>
+        <div class="wheel-base"></div>
+      </div>
+
+      <div id="result" class="result" aria-live="polite" hidden>
+        <p id="result-label" class="result-label"></p>
+        <p id="result-name" class="result-name"></p>
+        <p id="result-detail" class="result-detail"></p>
+        <div class="result-actions">
+          <button type="button" id="reroll-button" class="button button-secondary"></button>
+          <button type="button" id="log-pick-button" class="button">Log time on it</button>
+        </div>
+      </div>
+    </section>
+
+    <!--
+      Section 2: the add form.
+      aria-labelledby points to the heading's id, so screen readers announce
+      "Add to your shelf" when entering this section.
+    -->
+    <section class="panel" aria-labelledby="add-heading">
+      <h2 id="add-heading">Add to your shelf</h2>
+
+      <!--
+        novalidate turns OFF the browser's built-in popup messages, so our
+        own friendlier messages (from storage.js) are the ones people see.
+      -->
+      <form id="add-form" novalidate>
+        <!-- Shown only while editing an item (app.js fills it in). -->
+        <p id="edit-note" class="edit-note" hidden></p>
+
+        <div class="form-grid">
+          <!--
+            Each label's "for" matches its input's "id". That link means
+            clicking the label focuses the input, and screen readers can
+            announce which field is which.
+          -->
+          <div class="field">
+            <label for="name">Name</label>
+            <input id="name" type="text" maxlength="80" autocomplete="off">
+          </div>
+
+          <div class="field">
+            <label for="type">Type</label>
+            <!-- Left empty on purpose: app.js fills it from BacklogStore.TYPES,
+                 so the list of types is defined in exactly one place. -->
+            <select id="type"></select>
+          </div>
+
+          <div class="field">
+            <label for="total">Total minutes</label>
+            <!-- inputmode="numeric" shows the number keypad on phones. -->
+            <input id="total" type="number" inputmode="numeric" min="1" step="1">
+            <p class="hint">All of it, start to finish. A 10-episode show of 45 minutes is 450.</p>
+          </div>
+
+          <div class="field">
+            <label for="block">Minimum block (minutes)</label>
+            <input id="block" type="number" inputmode="numeric" min="1" step="1">
+            <p class="hint">The least time worth starting. One episode might be 45.</p>
+          </div>
+        </div>
+
+        <!--
+          Messages from validation show up here. It starts hidden. role="alert"
+          makes screen readers announce it when it appears.
+        -->
+        <ul id="form-errors" class="errors" role="alert" hidden></ul>
+
+        <div class="form-actions">
+          <button type="submit" id="save-button" class="button">Add to shelf</button>
+          <button type="button" id="cancel-edit-button" class="button button-secondary" hidden>Cancel</button>
+        </div>
+      </form>
+    </section>
+
+    <!-- Section 3: the shelf of saved items. -->
+    <section aria-labelledby="shelf-heading">
+      <!-- tabindex="-1" lets app.js move keyboard focus here after a delete. -->
+      <h2 id="shelf-heading" tabindex="-1">Your shelf</h2>
+
+      <!-- app.js writes the count, the "empty" message, or "Logged 20m on…" here.
+           aria-live="polite" makes screen readers announce each change
+           without interrupting whatever they're reading. -->
+      <p id="status" class="status" aria-live="polite">Loading your shelf…</p>
+
+      <!-- An unordered list. app.js adds one <li> cartridge per saved item. -->
+      <ul id="shelf" class="shelf"></ul>
+    </section>
+
+    <!-- Section 4: achievements. Completed items move here from the shelf. -->
+    <section class="achievements-section" aria-labelledby="achievements-heading">
+      <h2 id="achievements-heading" tabindex="-1">Achievements</h2>
+      <p id="achievements-status" class="status"></p>
+      <ul id="achievements" class="shelf"></ul>
+    </section>
+
+    <!-- Section 5: backup. The list lives in this browser only, so this is
+         how it travels between devices or survives cleared browser data. -->
+    <section class="panel backup-section" aria-labelledby="backup-heading">
+      <h2 id="backup-heading">Back up your shelf</h2>
+      <p class="hint">Your list is saved in this browser, on this device only. Download a copy to keep it safe or to move it to another device. Restoring adds what's in the file and never deletes anything.</p>
+
+      <div class="backup-actions">
+        <button type="button" id="export-button" class="button">Download backup</button>
+        <button type="button" id="import-button" class="button button-secondary">Restore from backup</button>
+        <!-- The real file picker stays hidden; the button above opens it. -->
+        <input type="file" id="import-file" accept=".json,application/json" hidden>
+      </div>
+
+      <p id="backup-message" class="backup-message" aria-live="polite" hidden></p>
+    </section>
+  </main>
+
+  <!-- Scripts go last so the elements above exist when the code looks for them.
+       Order matters: decide.js and app.js use BacklogStore (from storage.js),
+       and app.js uses BacklogDecide and BacklogWheel too. -->
+  <script src="js/storage.js"></script>
+  <script src="js/decide.js"></script>
+  <script src="js/wheel.js"></script>
+  <script src="js/achievements.js"></script>
+  <script src="js/app.js"></script>
+</body>
+</html>

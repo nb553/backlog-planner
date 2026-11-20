@@ -1,0 +1,2802 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+  <title>Backlog Planner</title>
+  <meta name="description" content="Turn a big backlog into small, doable blocks. A cartridge wheel picks something that fits your time.">
+
+  <!-- Colors the phone's browser bar to match the page. -->
+  <meta name="theme-color" content="#1b1640">
+
+  <!-- A tab icon drawn from an emoji inside an inline SVG, so no image
+       file is needed (and the browser doesn't go looking for favicon.ico). -->
+  <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'%3E%3Ctext y='.9em' font-size='90'%3E🎮%3C/text%3E%3C/svg%3E">
+
+  <!--
+    The pixel font (Press Start 2P) comes from Google Fonts. The two
+    "preconnect" lines open the connection early so the font loads faster.
+    If the font can't load (offline, blocked), style.css falls back to a
+    monospace font and the app still works.
+  -->
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Press+Start+2P&display=swap" rel="stylesheet">
+
+  <!-- Our own stylesheet. It loads in the <head> so the page never flashes unstyled. -->
+  <style>
+/*
+ * style.css: the LOOK of Backlog Planner.
+ *
+ * Theme: a retro arcade cartridge shelf. Dark indigo background, pixel
+ * headings, and each item drawn as a game cartridge colored by its type.
+ *
+ * Reading order: variables -> page basics -> form -> cartridges.
+ */
+
+/* ---------------------------------------------------------------
+   1. VARIABLES
+   Custom properties (names starting with --) are values you define once
+   and reuse with var(--name). Change a color here and it updates
+   everywhere. They go on :root, which means "the whole page".
+   --------------------------------------------------------------- */
+:root {
+  --bg: #1b1640;          /* page background */
+  --panel: #2a2266;       /* form panel */
+  --edge: #4a3fa8;        /* borders and dividers */
+  --inset: #140f33;       /* dark "pressed in" areas: inputs, bar tracks */
+  --ink: #f5f0ff;         /* main text on dark */
+  --muted: #b9b0e0;       /* secondary text on dark */
+  --paper: #fff4d6;       /* cartridge label sticker */
+  --paper-ink: #1b1640;   /* text on light surfaces */
+  --accent: #ff3ea5;      /* the main button */
+  --accent-shadow: #a3126b;
+  --warn: #ffc93c;        /* focus rings and "mid" health */
+  --good: #3ddc97;        /* "high" health */
+  --bad: #ff5a5f;         /* errors and "low" health */
+
+  /* One color per item type. The cartridge picks one (see section 4). */
+  --watch: #ff6b6b;
+  --play: #a78bfa;
+  --read: #ffc93c;
+  --build: #4da8ff;
+
+  /* Font stacks: the first font that exists is used, then the next. */
+  --pixel: "Press Start 2P", "Courier New", monospace;
+  --body: system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
+
+  /* Tells the browser this page is dark, so built-in controls (the number
+     spinners, the dropdown list, scrollbars) are drawn dark too. */
+  color-scheme: dark;
+}
+
+/* ---------------------------------------------------------------
+   2. PAGE BASICS
+   --------------------------------------------------------------- */
+
+/* border-box makes width include padding and border, which makes sizing
+   far less surprising. Applied to everything with the * selector. */
+* {
+  box-sizing: border-box;
+}
+
+body {
+  margin: 0;
+  /* env(safe-area-inset-*) keeps content clear of phone notches and home
+     bars (it's 0 on a desktop). Needs viewport-fit=cover in index.html. */
+  padding:
+    calc(1.5rem + env(safe-area-inset-top, 0px))
+    calc(1rem + env(safe-area-inset-right, 0px))
+    calc(3rem + env(safe-area-inset-bottom, 0px))
+    calc(1rem + env(safe-area-inset-left, 0px));
+  background: var(--bg);
+  color: var(--ink);
+  font-family: var(--body);
+  font-size: 1rem;
+  line-height: 1.5;
+}
+
+/* Header and main share a centered column up to 60rem wide.
+   "margin: 0 auto" centers a block that has a max-width. */
+.masthead,
+main {
+  max-width: 60rem;
+  margin: 0 auto;
+}
+
+.masthead {
+  margin-bottom: 2rem;
+}
+
+h1,
+h2 {
+  font-family: var(--pixel);
+  font-weight: 400;     /* pixel fonts look wrong when made bold */
+  line-height: 1.5;
+}
+
+h1 {
+  margin: 0 0 0.5rem;
+  /* clamp(min, preferred, max) scales the size with the screen width
+     but never below or above the limits. */
+  font-size: clamp(1.1rem, 4.5vw, 1.8rem);
+  /* A hard offset shadow with no blur gives the classic pixel-art look. */
+  text-shadow: 3px 3px 0 var(--accent);
+}
+
+.masthead p {
+  margin: 0;
+  color: var(--muted);
+}
+
+h2 {
+  margin: 0 0 1rem;
+  padding-bottom: 0.75rem;
+  font-size: 0.85rem;
+  border-bottom: 4px solid var(--edge);
+}
+
+/* Keyboard users need to see where focus is. This yellow ring appears
+   on any focused control. :focus-visible skips it for mouse clicks. */
+:focus-visible {
+  outline: 3px solid var(--warn);
+  outline-offset: 2px;
+}
+
+/* ---------------------------------------------------------------
+   3. THE ADD FORM
+   --------------------------------------------------------------- */
+.panel {
+  margin-bottom: 2.5rem;
+  padding: 1.25rem;
+  background: var(--panel);
+  border: 3px solid var(--edge);
+  border-radius: 8px;
+}
+
+/* CSS grid: auto-fit makes as many columns as fit, each at least 13rem
+   wide, sharing the leftover space equally. One column on a phone,
+   several on a desktop, with no media query needed. */
+.form-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(13rem, 1fr));
+  gap: 1rem 1.25rem;
+}
+
+.field label {
+  display: block;
+  margin-bottom: 0.4rem;
+  font-weight: 600;
+}
+
+/* 1rem (16px) text stops iPhones from zooming in when you tap a field. */
+.field input,
+.field select {
+  width: 100%;
+  min-height: 3rem;          /* a comfortable tap target */
+  padding: 0.6rem 0.75rem;
+  background: var(--inset);
+  color: var(--ink);
+  font: inherit;             /* use the page font, not the browser default */
+  border: 2px solid var(--edge);
+  border-radius: 6px;
+}
+
+.hint {
+  margin: 0.4rem 0 0;
+  color: var(--muted);
+  font-size: 0.85rem;
+}
+
+/* The error list. The [hidden] rule matters: our "display: block"
+   would otherwise override the hidden attribute, so we restate it. */
+.errors {
+  margin: 1.25rem 0 0;
+  padding: 0.75rem 1rem 0.75rem 2rem;
+  background: rgba(255, 90, 95, 0.15);
+  border-left: 4px solid var(--bad);
+  border-radius: 4px;
+}
+.errors[hidden] {
+  display: none;
+}
+
+/* The main button is styled like an arcade key: a solid "edge" shadow
+   underneath, which disappears when pressed so it looks like it sinks. */
+.button {
+  margin-top: 1.25rem;
+  min-height: 3rem;
+  padding: 0.75rem 1.5rem;
+  background: var(--accent);
+  color: var(--paper-ink);
+  font-family: var(--pixel);
+  font-size: 0.75rem;
+  border: 0;
+  border-radius: 6px;
+  box-shadow: 0 4px 0 var(--accent-shadow);
+  cursor: pointer;
+}
+.button:active {
+  transform: translateY(4px);
+  box-shadow: 0 0 0 var(--accent-shadow);
+}
+
+/* ---------------------------------------------------------------
+   4. THE SHELF AND CARTRIDGES
+   --------------------------------------------------------------- */
+.status {
+  margin: 0 0 1.25rem;
+  color: var(--muted);
+}
+
+/* Remove the bullet points and default indent from the list, then lay
+   the cartridges out in a responsive grid (same trick as the form). */
+.shelf {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(14rem, 1fr));
+  gap: 1.5rem;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+/* Each <li> gets a type color through its data-type attribute.
+   The selector [data-type="watch"] matches <li data-type="watch">.
+   It sets --type, which the cartridge body then uses. */
+.cartridge[data-type="watch"], .mini-cart[data-type="watch"] { --type: var(--watch); }
+.cartridge[data-type="play"],  .mini-cart[data-type="play"]  { --type: var(--play); }
+.cartridge[data-type="read"],  .mini-cart[data-type="read"]  { --type: var(--read); }
+.cartridge[data-type="build"], .mini-cart[data-type="build"] { --type: var(--build); }
+
+/* Why two layers? clip-path (used below to cut the corner) would also
+   cut off a shadow on the same element. So the OUTER <li> carries the
+   shadow, and the INNER body is the one that gets clipped. */
+.cartridge {
+  filter: drop-shadow(0 5px 0 rgba(0, 0, 0, 0.45));
+}
+
+.cartridge-body {
+  display: flex;
+  flex-direction: column;
+  gap: 0.6rem;
+  height: 100%;
+  padding: 0 0.9rem 0.9rem;
+  background: var(--type);
+  color: var(--paper-ink);
+  /* polygon() lists the corner points of the visible shape. This one
+     cuts a 22px diagonal off the top-right corner, like a real cartridge. */
+  clip-path: polygon(0 0, calc(100% - 22px) 0, 100% 22px, 100% 100%, 0 100%);
+  border-radius: 8px 0 8px 8px;
+}
+
+/* The grip ridges: a repeating gradient makes a stripe pattern.
+   3px of dark, then 6px of clear, repeated across the width.
+   The negative side margins stretch it edge to edge past the padding. */
+.cartridge-grip {
+  height: 16px;
+  margin: 0 -0.9rem;
+  background: repeating-linear-gradient(
+    90deg,
+    rgba(27, 22, 64, 0.28) 0 3px,
+    transparent 3px 9px
+  );
+}
+
+.cartridge-type {
+  margin: 0.2rem 0 0;
+  font-family: var(--pixel);
+  font-size: 0.65rem;
+  /* Display only: shows "Play" while the saved data stays "play". */
+  text-transform: capitalize;
+}
+
+/* The cream label sticker. flex: 1 makes it grow to fill spare height, so
+   the health bars line up along the bottom even when names wrap. */
+.cartridge-label {
+  flex: 1;
+  padding: 0.7rem 0.75rem;
+  background: var(--paper);
+  border-radius: 4px;
+}
+
+.cartridge-name {
+  margin: 0 0 0.35rem;
+  font-size: 1.05rem;
+  line-height: 1.25;
+  overflow-wrap: anywhere;   /* long words wrap instead of overflowing */
+}
+
+.cartridge-block {
+  margin: 0;
+  font-size: 0.85rem;
+  font-style: italic;
+}
+
+/* The health bar: a dark track with a colored fill inside.
+   The fill's width comes from --pct, which app.js sets per item. */
+.health-track {
+  position: relative;
+  height: 1.1rem;
+  background: var(--inset);
+  border: 2px solid var(--paper-ink);
+  border-radius: 4px;
+  overflow: hidden;
+}
+
+.health-fill {
+  width: var(--pct);
+  height: 100%;
+  background: var(--bar);
+}
+.health-fill[data-level="high"] { --bar: var(--good); }
+.health-fill[data-level="mid"]  { --bar: var(--warn); }
+.health-fill[data-level="low"]  { --bar: var(--bad); }
+
+/* The segment look: an overlay (::after) of thin dark gaps drawn on top
+   of the bar. pointer-events: none lets clicks pass through it. */
+.health-track::after {
+  content: "";
+  position: absolute;
+  inset: 0;
+  background: repeating-linear-gradient(
+    90deg,
+    transparent 0 9px,
+    var(--inset) 9px 11px
+  );
+  pointer-events: none;
+}
+
+.health-text {
+  margin: 0.4rem 0 0;
+  font-size: 0.8rem;
+  font-weight: 600;
+  font-style: italic;
+}
+
+/* ---------------------------------------------------------------
+   5. LOGGING MINUTES (the form at the bottom of each cartridge)
+   --------------------------------------------------------------- */
+
+/* The global yellow focus ring (section 2) would vanish on the yellow
+   "read" cartridge, so inside cartridges the ring is dark instead. */
+.cartridge :focus-visible {
+  outline-color: var(--paper-ink);
+}
+
+/* flex-wrap lets the error message drop onto its own line below
+   the input and button. */
+.log-form {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.5rem;
+}
+
+.log-input {
+  flex: 1;
+  min-width: 0;            /* lets a flex item shrink below its content width */
+  min-height: 2.75rem;     /* comfortable tap target */
+  padding: 0.4rem 0.6rem;
+  background: var(--inset);
+  color: var(--ink);
+  font: inherit;
+  border: 2px solid var(--paper-ink);
+  border-radius: 6px;
+}
+
+/* A smaller sibling of the main arcade-key button: dark with light text,
+   so it reads clearly on every cartridge color. */
+.log-button {
+  min-height: 2.75rem;
+  padding: 0.4rem 1rem;
+  background: var(--paper-ink);
+  color: var(--paper);
+  font-family: var(--pixel);
+  font-size: 0.65rem;
+  border: 0;
+  border-radius: 6px;
+  box-shadow: 0 3px 0 rgba(0, 0, 0, 0.4);
+  cursor: pointer;
+}
+.log-button:active {
+  transform: translateY(3px);
+  box-shadow: 0 0 0 rgba(0, 0, 0, 0.4);
+}
+
+/* flex-basis: 100% makes the message fill a whole row. The [hidden]
+   rule is restated for the same reason as the form errors (section 3). */
+.log-error {
+  flex-basis: 100%;
+  margin: 0;
+  padding: 0.4rem 0.6rem;
+  background: var(--paper-ink);
+  color: var(--paper);
+  font-size: 0.85rem;
+  font-weight: 600;
+  border-radius: 4px;
+}
+.log-error[hidden] {
+  display: none;
+}
+
+
+/* ---------------------------------------------------------------
+   6. DECIDE FOR ME (the cartridge wheel)
+   --------------------------------------------------------------- */
+
+/* Anything with the hidden attribute stays hidden, even if another rule
+   below sets display on it. */
+[hidden] {
+  display: none !important;
+}
+
+.decide-row {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: flex-end;
+  gap: 1rem;
+}
+.decide-row .field {
+  flex: 1 1 12rem;
+}
+.decide-row .button {
+  margin-top: 0;
+}
+
+.decide-message {
+  margin: 1rem 0 0;
+  padding: 0.75rem 1rem;
+  background: rgba(255, 90, 95, 0.15);
+  border-left: 4px solid var(--bad);
+  border-radius: 4px;
+}
+
+.closest-prompt {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 1rem;
+  margin-top: 1rem;
+}
+.closest-prompt p {
+  flex: 1 1 14rem;
+  margin: 0;
+}
+
+/* A calmer second button style for "Reroll" and "Show it anyway". */
+.button-secondary {
+  background: var(--edge);
+  color: var(--ink);
+  box-shadow: 0 4px 0 var(--inset);
+}
+.button:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+  transform: none;
+}
+
+/* The wheel stage. Cartridges are placed by app.js (left, transform,
+   opacity, z-index) on every animation frame. isolation: isolate keeps
+   their z-index values inside this box. */
+.wheel {
+  position: relative;
+  isolation: isolate;
+  max-width: 32rem;
+  height: 17rem;
+  margin: 1.5rem auto 0;
+  pointer-events: none;
+}
+
+.wheel-slot {
+  position: absolute;
+  bottom: 2.75rem;
+  left: 50%;
+  width: 7.5rem;
+  transform-origin: 50% 100%;
+  filter: drop-shadow(0 4px 0 rgba(0, 0, 0, 0.4));
+}
+.wheel-slot.is-winner {
+  filter: drop-shadow(0 0 12px var(--accent)) drop-shadow(0 4px 0 rgba(0, 0, 0, 0.4));
+}
+
+/* The drum. It sits IN FRONT of the cartridges (z-index above the highest
+   slot), so their bottoms look tucked into slots and a lifted cartridge
+   appears to rise out of the drum. */
+.wheel-base {
+  position: absolute;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  height: 6rem;
+  z-index: 1000;
+  background: var(--inset);
+  border: 3px solid var(--edge);
+  border-top: 8px solid var(--accent);
+  border-radius: 0.75rem 0.75rem 2rem 2rem;
+  box-shadow: 0 6px 0 rgba(0, 0, 0, 0.35);
+}
+
+/* A small cartridge, same look as the shelf ones. */
+.mini-cart {
+  display: flex;
+  flex-direction: column;
+  gap: 0.4rem;
+  height: 9.5rem;
+  padding: 0 0.6rem 0.6rem;
+  background: var(--type);
+  color: var(--paper-ink);
+  clip-path: polygon(0 0, calc(100% - 16px) 0, 100% 16px, 100% 100%, 0 100%);
+  border-radius: 6px 0 6px 6px;
+}
+.mini-grip {
+  height: 12px;
+  margin: 0 -0.6rem;
+  background: repeating-linear-gradient(90deg, rgba(27, 22, 64, 0.28) 0 3px, transparent 3px 9px);
+}
+.mini-type {
+  margin: 0.1rem 0 0;
+  font-family: var(--pixel);
+  font-size: 0.55rem;
+  text-transform: capitalize;
+}
+/* The name label: clamped to two lines so long names can't break the layout. */
+.mini-name {
+  display: -webkit-box;
+  -webkit-line-clamp: 2;
+  -webkit-box-orient: vertical;
+  margin: 0;
+  padding: 0.45rem 0.5rem;
+  overflow: hidden;
+  overflow-wrap: anywhere;
+  background: var(--paper);
+  border-radius: 4px;
+  font-size: 0.85rem;
+  font-weight: 700;
+  line-height: 1.2;
+}
+
+.result {
+  margin-top: 1rem;
+  padding: 1.25rem 1rem;
+  text-align: center;
+  background: var(--inset);
+  border: 3px solid var(--edge);
+  border-radius: 8px;
+}
+.result-label {
+  margin: 0 0 0.5rem;
+  color: var(--muted);
+  font-family: var(--pixel);
+  font-size: 0.65rem;
+}
+.result-name {
+  margin: 0;
+  font-size: 1.6rem;
+  font-weight: 700;
+  line-height: 1.2;
+  overflow-wrap: anywhere;
+}
+.result-detail {
+  margin: 0.5rem 0 0;
+  color: var(--muted);
+  font-style: italic;
+}
+.result-actions {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: center;
+  gap: 0.75rem;
+  margin-top: 1.25rem;
+}
+.result-actions .button {
+  margin-top: 0;
+}
+
+/* ---------------------------------------------------------------
+   7. LOCK NOTE, DELETE CONTROLS, AND ACHIEVEMENTS
+   --------------------------------------------------------------- */
+.lock-note {
+  margin: 1rem 0 0;
+  color: var(--muted);
+  font-style: italic;
+}
+
+/* Delete / confirm. These sit on colored cartridges and cards, so they use
+   the dark ink color, which reads well on all four type colors. */
+.delete-control {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: flex-end;
+  gap: 0.5rem;
+}
+.delete-question {
+  font-size: 0.85rem;
+  font-weight: 600;
+}
+.edit-button,
+.delete-button,
+.delete-yes,
+.delete-keep {
+  min-height: 2.75rem;
+  padding: 0.4rem 0.9rem;
+  background: transparent;
+  color: var(--paper-ink);
+  font: inherit;
+  font-size: 0.85rem;
+  font-weight: 700;
+  border: 2px solid var(--paper-ink);
+  border-radius: 6px;
+  cursor: pointer;
+}
+.delete-yes {
+  background: var(--paper-ink);
+  color: var(--paper);
+}
+
+/* Achievement cards. Shared basics first, then one look per type. */
+.achievements-section {
+  margin-top: 3rem;
+}
+.achievement[data-type="watch"] { --type: var(--watch); }
+.achievement[data-type="play"]  { --type: var(--play); }
+.achievement[data-type="read"]  { --type: var(--read); }
+.achievement[data-type="build"] { --type: var(--build); }
+
+.achievement {
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 0.4rem;
+  padding: 1.25rem 1rem 0.75rem;
+  background: var(--type);
+  color: var(--paper-ink);
+  text-align: center;
+  border-radius: 10px;
+  filter: drop-shadow(0 5px 0 rgba(0, 0, 0, 0.45));
+}
+.achievement-icon {
+  width: 3rem;
+  height: 3rem;
+  shape-rendering: crispEdges;   /* sharp pixel edges, no blurring */
+}
+.achievement-title {
+  margin: 0;
+  font-family: var(--pixel);
+  font-size: 0.6rem;
+  line-height: 1.6;
+}
+.achievement-name {
+  margin: 0;
+  font-size: 1.15rem;
+  line-height: 1.25;
+  overflow-wrap: anywhere;
+}
+.achievement-stats,
+.achievement-date {
+  margin: 0;
+  font-size: 0.85rem;
+  font-style: italic;
+}
+.achievement .delete-control {
+  width: 100%;
+  margin-top: 0.25rem;
+}
+
+/* WATCH: a ticket stub. Two radial gradients paint half-circles in the
+   page color at the middle of each side, which looks like punched notches. */
+.achievement[data-type="watch"] {
+  background:
+    radial-gradient(circle at 0 50%, var(--bg) 0 0.7rem, transparent 0.75rem),
+    radial-gradient(circle at 100% 50%, var(--bg) 0 0.7rem, transparent 0.75rem),
+    var(--watch);
+  border-radius: 6px;
+}
+.achievement[data-type="watch"] .achievement-stats {
+  width: 100%;
+  padding-top: 0.5rem;
+  border-top: 2px dashed rgba(27, 22, 64, 0.55);   /* the perforation line */
+}
+
+/* PLAY: a trophy plaque with a double frame. */
+.achievement[data-type="play"] {
+  border: 4px double var(--paper);
+  border-radius: 14px;
+  box-shadow: inset 0 0 0 3px rgba(27, 22, 64, 0.35);
+}
+
+/* READ: a cream page with a bookmark ribbon hanging from the top edge. */
+.achievement[data-type="read"] {
+  padding-top: 2.5rem;
+  background: var(--paper);
+  border: 3px solid var(--read);
+  border-radius: 4px 4px 10px 10px;
+}
+.achievement[data-type="read"]::before {
+  content: "";
+  position: absolute;
+  top: -3px;
+  right: 1rem;
+  width: 1.5rem;
+  height: 3rem;
+  background: var(--read);
+  clip-path: polygon(0 0, 100% 0, 100% 100%, 50% 78%, 0 100%);   /* the V notch */
+}
+
+/* BUILD: a blueprint. Two thin gradients make a grid on blue paper. */
+.achievement[data-type="build"] {
+  background-color: var(--build);
+  background-image:
+    linear-gradient(rgba(255, 255, 255, 0.28) 1px, transparent 1px),
+    linear-gradient(90deg, rgba(255, 255, 255, 0.28) 1px, transparent 1px);
+  background-size: 16px 16px;
+  border: 3px dashed var(--paper);
+  border-radius: 4px;
+}
+
+/* ---------------------------------------------------------------
+   8. BACKUP
+   --------------------------------------------------------------- */
+.backup-section {
+  margin-top: 3rem;
+  margin-bottom: 0;
+}
+.backup-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 1rem;
+  margin-top: 1rem;
+}
+.backup-actions .button {
+  margin-top: 0;
+}
+.backup-message {
+  margin: 1rem 0 0;
+  padding: 0.75rem 1rem;
+  background: rgba(61, 220, 151, 0.15);
+  border-left: 4px solid var(--good);
+  border-radius: 4px;
+}
+.backup-message.is-error {
+  background: rgba(255, 90, 95, 0.15);
+  border-left-color: var(--bad);
+}
+
+/* ---------------------------------------------------------------
+   9. EDITING (the add form doubles as the edit form)
+   --------------------------------------------------------------- */
+.edit-note {
+  margin: 0 0 1rem;
+  padding: 0.6rem 0.9rem;
+  background: rgba(255, 255, 255, 0.08);
+  border-left: 4px solid var(--warn);
+  border-radius: 4px;
+}
+.form-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 1rem;
+  margin-top: 1.25rem;
+}
+.form-actions .button {
+  margin-top: 0;
+}
+
+</style>
+</head>
+
+<body>
+  <!-- <header> holds the page's title area. -->
+  <header class="masthead">
+    <h1>Backlog Planner</h1>
+    <p>Big backlogs, small blocks.</p>
+  </header>
+
+  <main>
+    <!--
+      Section 1: Decide for me. Type your minutes, press the button, and the
+      wheel spins. The wheel is decoration (aria-hidden), so the "result"
+      block underneath carries the answer for screen readers.
+      Everything with the hidden attribute starts out invisible; app.js
+      shows it when needed.
+    -->
+    <section class="panel" aria-labelledby="decide-heading">
+      <h2 id="decide-heading">Decide for me</h2>
+
+      <form id="decide-form" novalidate>
+        <div class="decide-row">
+          <div class="field">
+            <label for="minutes">How many minutes do you have?</label>
+            <input id="minutes" type="number" inputmode="numeric" min="1" step="1">
+          </div>
+          <button type="submit" id="decide-button" class="button">Decide for me</button>
+        </div>
+      </form>
+
+      <!-- Shown while Decide is locked (after a pick, until you log time). -->
+      <p id="lock-note" class="lock-note" hidden>Locked in. Log time on something to unlock a new pick.</p>
+
+      <p id="decide-message" class="decide-message" aria-live="polite" hidden></p>
+
+      <!-- Shown when nothing fits: the person chooses whether to see the closest match. -->
+      <div id="closest-prompt" class="closest-prompt" hidden>
+        <p id="closest-text"></p>
+        <button type="button" id="anyway-button" class="button button-secondary">Show it anyway</button>
+      </div>
+
+      <div id="wheel" class="wheel" aria-hidden="true" hidden>
+        <div id="wheel-slots"></div>
+        <div class="wheel-base"></div>
+      </div>
+
+      <div id="result" class="result" aria-live="polite" hidden>
+        <p id="result-label" class="result-label"></p>
+        <p id="result-name" class="result-name"></p>
+        <p id="result-detail" class="result-detail"></p>
+        <div class="result-actions">
+          <button type="button" id="reroll-button" class="button button-secondary"></button>
+          <button type="button" id="log-pick-button" class="button">Log time on it</button>
+        </div>
+      </div>
+    </section>
+
+    <!--
+      Section 2: the add form.
+      aria-labelledby points to the heading's id, so screen readers announce
+      "Add to your shelf" when entering this section.
+    -->
+    <section class="panel" aria-labelledby="add-heading">
+      <h2 id="add-heading">Add to your shelf</h2>
+
+      <!--
+        novalidate turns OFF the browser's built-in popup messages, so our
+        own friendlier messages (from storage.js) are the ones people see.
+      -->
+      <form id="add-form" novalidate>
+        <!-- Shown only while editing an item (app.js fills it in). -->
+        <p id="edit-note" class="edit-note" hidden></p>
+
+        <div class="form-grid">
+          <!--
+            Each label's "for" matches its input's "id". That link means
+            clicking the label focuses the input, and screen readers can
+            announce which field is which.
+          -->
+          <div class="field">
+            <label for="name">Name</label>
+            <input id="name" type="text" maxlength="80" autocomplete="off">
+          </div>
+
+          <div class="field">
+            <label for="type">Type</label>
+            <!-- Left empty on purpose: app.js fills it from BacklogStore.TYPES,
+                 so the list of types is defined in exactly one place. -->
+            <select id="type"></select>
+          </div>
+
+          <div class="field">
+            <label for="total">Total minutes</label>
+            <!-- inputmode="numeric" shows the number keypad on phones. -->
+            <input id="total" type="number" inputmode="numeric" min="1" step="1">
+            <p class="hint">All of it, start to finish. A 10-episode show of 45 minutes is 450.</p>
+          </div>
+
+          <div class="field">
+            <label for="block">Minimum block (minutes)</label>
+            <input id="block" type="number" inputmode="numeric" min="1" step="1">
+            <p class="hint">The least time worth starting. One episode might be 45.</p>
+          </div>
+        </div>
+
+        <!--
+          Messages from validation show up here. It starts hidden. role="alert"
+          makes screen readers announce it when it appears.
+        -->
+        <ul id="form-errors" class="errors" role="alert" hidden></ul>
+
+        <div class="form-actions">
+          <button type="submit" id="save-button" class="button">Add to shelf</button>
+          <button type="button" id="cancel-edit-button" class="button button-secondary" hidden>Cancel</button>
+        </div>
+      </form>
+    </section>
+
+    <!-- Section 3: the shelf of saved items. -->
+    <section aria-labelledby="shelf-heading">
+      <!-- tabindex="-1" lets app.js move keyboard focus here after a delete. -->
+      <h2 id="shelf-heading" tabindex="-1">Your shelf</h2>
+
+      <!-- app.js writes the count, the "empty" message, or "Logged 20m on…" here.
+           aria-live="polite" makes screen readers announce each change
+           without interrupting whatever they're reading. -->
+      <p id="status" class="status" aria-live="polite">Loading your shelf…</p>
+
+      <!-- An unordered list. app.js adds one <li> cartridge per saved item. -->
+      <ul id="shelf" class="shelf"></ul>
+    </section>
+
+    <!-- Section 4: achievements. Completed items move here from the shelf. -->
+    <section class="achievements-section" aria-labelledby="achievements-heading">
+      <h2 id="achievements-heading" tabindex="-1">Achievements</h2>
+      <p id="achievements-status" class="status"></p>
+      <ul id="achievements" class="shelf"></ul>
+    </section>
+
+    <!-- Section 5: backup. The list lives in this browser only, so this is
+         how it travels between devices or survives cleared browser data. -->
+    <section class="panel backup-section" aria-labelledby="backup-heading">
+      <h2 id="backup-heading">Back up your shelf</h2>
+      <p class="hint">Your list is saved in this browser, on this device only. Download a copy to keep it safe or to move it to another device. Restoring adds what's in the file and never deletes anything.</p>
+
+      <div class="backup-actions">
+        <button type="button" id="export-button" class="button">Download backup</button>
+        <button type="button" id="import-button" class="button button-secondary">Restore from backup</button>
+        <!-- The real file picker stays hidden; the button above opens it. -->
+        <input type="file" id="import-file" accept=".json,application/json" hidden>
+      </div>
+
+      <p id="backup-message" class="backup-message" aria-live="polite" hidden></p>
+    </section>
+  </main>
+
+  <!-- Scripts go last so the elements above exist when the code looks for them.
+       Order matters: decide.js and app.js use BacklogStore (from storage.js),
+       and app.js uses BacklogDecide and BacklogWheel too. -->
+  <script>
+/*
+ * storage.js: the DATA LAYER for Backlog Planner.
+ *
+ * Responsibilities:
+ *   1. Define what an "item" is.
+ *   2. Validate input before an item is created.
+ *   3. Save and load the list from the browser's local storage.
+ *
+ * This file knows nothing about the page (no buttons, no HTML).
+ * Keeping data logic separate from page logic is a good habit: the data
+ * code is easy to test (see tests/storage.test.js) and easy to reuse
+ * in another project.
+ */
+
+// The same IIFE pattern as app.js: everything inside stays private,
+// and we choose what to share at the very bottom of the file.
+// "root" is whatever global object we're given: window in a browser,
+// globalThis in Node (see the very last line of the file).
+(function (root) {
+  "use strict";
+
+  // ---------------------------------------------------------------
+  // CONSTANTS
+  // ---------------------------------------------------------------
+
+  // The "key" our list is saved under. localStorage works like a
+  // dictionary: you store a value under a name and read it back later.
+  // The "v1" is a version tag. If the item shape changes someday, bump
+  // it to "v2" so old saved data isn't mistaken for the new format.
+  var STORAGE_KEY = "backlogPlanner.items.v1";
+
+  // The allowed item types. Kept in one array so the validator, the
+  // form's dropdown (step 2), and the loader all agree on the list.
+  var TYPES = ["watch", "play", "read", "build"];
+
+  // ---------------------------------------------------------------
+  // SMALL HELPERS
+  // ---------------------------------------------------------------
+
+  // Makes a unique id so each item can be found later (to log minutes
+  // on it, for example). crypto.randomUUID is the best tool, but the
+  // browser only allows it in secure contexts, so we check it exists
+  // before using it and fall back to a timestamp plus random digits.
+  function makeId() {
+    if (root.crypto && typeof root.crypto.randomUUID === "function") {
+      return root.crypto.randomUUID();
+    }
+    return "item-" + Date.now() + "-" + Math.floor(Math.random() * 1e9);
+  }
+
+  // True only for whole numbers above zero: 1, 20, 450.
+  // False for 0, -5, 12.5, and text like "450".
+  // typeof value === "number"  -> it's actually a number, not text
+  // Number.isInteger(value)    -> no decimals
+  // value > 0                  -> positive
+  // Form inputs arrive as text, so step 2 must convert them to numbers
+  // before calling this.
+  function isPositiveWholeNumber(value) {
+    return typeof value === "number" && Number.isInteger(value) && value > 0;
+  }
+
+  // ---------------------------------------------------------------
+  // VALIDATION
+  // ---------------------------------------------------------------
+
+  /*
+   * validateItem(input) -> { ok: boolean, errors: string[] }
+   *
+   * Checks the four fields a user fills in. It collects ALL the problems
+   * instead of stopping at the first, so the form can show everything
+   * that needs fixing at once. The messages are written for the person
+   * using the form, so the UI can display them as-is.
+   */
+  function validateItem(input) {
+    var errors = [];
+
+    // "input || {}" means: use input if it exists, otherwise an empty
+    // object. That way a missing input can't crash the checks below.
+    var data = input || {};
+
+    // Only call .trim() (remove outer spaces) if name really is text.
+    // Otherwise treat it as an empty string, which fails the check.
+    var name = typeof data.name === "string" ? data.name.trim() : "";
+    if (name === "") {
+      errors.push("Give it a name.");
+    }
+
+    // indexOf returns -1 when the value isn't in the array.
+    if (TYPES.indexOf(data.type) === -1) {
+      errors.push("Pick a type: " + TYPES.join(", ") + ".");
+    }
+
+    // Store the results in variables because we use them twice: once to
+    // add messages, and once more for the "block bigger than total" check.
+    var totalOk = isPositiveWholeNumber(data.totalMinutes);
+    var blockOk = isPositiveWholeNumber(data.minBlockMinutes);
+
+    if (!totalOk) {
+      errors.push("Total size must be a whole number of minutes above 0.");
+    }
+    if (!blockOk) {
+      errors.push("Minimum block must be a whole number of minutes above 0.");
+    }
+
+    // Only compare the two numbers if both are valid. Otherwise this
+    // would add a confusing message on top of the ones above.
+    if (totalOk && blockOk && data.minBlockMinutes > data.totalMinutes) {
+      errors.push("Minimum block can't be bigger than the total size.");
+    }
+
+    // An empty errors array means everything passed.
+    return { ok: errors.length === 0, errors: errors };
+  }
+
+  // ---------------------------------------------------------------
+  // CREATING ITEMS
+  // ---------------------------------------------------------------
+
+  /*
+   * createItem(input) -> item
+   *
+   * Builds a complete item from form input. It throws an error if the
+   * input is invalid, so call validateItem first when you want friendly
+   * messages to show the user.
+   *
+   * The item shape:
+   *   id               unique string
+   *   name             string
+   *   type             "watch" | "play" | "read" | "build"
+   *   totalMinutes     whole number, the full "health bar"
+   *   remainingMinutes whole number, starts equal to totalMinutes
+   *   minBlockMinutes  whole number, the least time worth starting
+   *   createdAt        date as text, e.g. "2026-11-13T18:20:00.000Z"
+   */
+  function createItem(input) {
+    var result = validateItem(input);
+    if (!result.ok) {
+      // "throw" stops the function and signals a problem to whoever
+      // called it. join(" ") merges the message list into one string.
+      throw new Error(result.errors.join(" "));
+    }
+    return {
+      id: makeId(),
+      name: input.name.trim(),
+      type: input.type,
+      totalMinutes: input.totalMinutes,
+      // A brand-new item hasn't been worked on, so the bar starts full.
+      remainingMinutes: input.totalMinutes,
+      minBlockMinutes: input.minBlockMinutes,
+      // toISOString makes a standard, sortable date string.
+      createdAt: new Date().toISOString()
+    };
+  }
+
+  // ---------------------------------------------------------------
+  // LOADING AND SAVING
+  // ---------------------------------------------------------------
+
+  // Checks that something read back from storage still looks like a real
+  // item. Saved data can be edited by hand, damaged, or left over from an
+  // older version, so we never trust it blindly.
+  // The "&&" chain means ALL of these must be true.
+  function looksLikeItem(item) {
+    return (
+      item !== null &&
+      typeof item === "object" &&
+      typeof item.id === "string" &&
+      typeof item.name === "string" &&
+      TYPES.indexOf(item.type) !== -1 &&
+      isPositiveWholeNumber(item.totalMinutes) &&
+      isPositiveWholeNumber(item.minBlockMinutes) &&
+      // Remaining may be 0 (defeated), but never negative, and never
+      // more than the total.
+      Number.isInteger(item.remainingMinutes) &&
+      item.remainingMinutes >= 0 &&
+      item.remainingMinutes <= item.totalMinutes
+    );
+  }
+
+  // Picks which storage to use. Tests pass in a fake one; the real app
+  // passes nothing and gets the browser's localStorage.
+  // Reading root.localStorage can itself throw in some privacy settings,
+  // so it's wrapped in try/catch and falls back to null.
+  function getStorage(storage) {
+    if (storage) return storage;
+    try {
+      return root.localStorage || null;
+    } catch (e) {
+      return null;
+    }
+  }
+
+  /*
+   * loadItems([storage]) -> item[]
+   *
+   * ALWAYS returns an array. Missing, unreadable, or damaged data gives
+   * an empty list (or just the valid items) and never crashes the app.
+   */
+  function loadItems(storage) {
+    var store = getStorage(storage);
+    if (!store) return [];
+
+    // try/catch: run the risky code in "try". If anything inside throws
+    // an error, jump to "catch" instead of crashing the whole page.
+    // JSON.parse is the risky part: it throws on malformed text.
+    try {
+      // localStorage can only hold TEXT. getItem returns null if nothing
+      // has been saved under this key yet.
+      var raw = store.getItem(STORAGE_KEY);
+      if (raw === null) return [];
+
+      // JSON.parse turns saved text back into real JavaScript data.
+      var parsed = JSON.parse(raw);
+      if (!Array.isArray(parsed)) return [];
+
+      // filter keeps only the entries where looksLikeItem returns true,
+      // quietly dropping any damaged ones.
+      return parsed.filter(looksLikeItem);
+    } catch (e) {
+      return [];
+    }
+  }
+
+  /*
+   * saveItems(items, [storage]) -> boolean
+   *
+   * Returns true if saved, false if the browser refused (storage full
+   * or blocked). The page can use the false case to warn the user.
+   */
+  function saveItems(items, storage) {
+    var store = getStorage(storage);
+    if (!store) return false;
+    try {
+      // JSON.stringify turns our array of items into text, because
+      // localStorage can only store text.
+      store.setItem(STORAGE_KEY, JSON.stringify(items));
+      return true;
+    } catch (e) {
+      return false;
+    }
+  }
+
+  // ---------------------------------------------------------------
+  // LOGGING PROGRESS ("damage")
+  // ---------------------------------------------------------------
+
+  /*
+   * applyDamage(item, minutes) -> result object
+   *
+   * The one rule for lowering a health bar. The "Log" button uses it now,
+   * and the countdown timer can call the same function later.
+   *
+   * Unlike the functions above, this one CHANGES the item you pass in
+   * (item.remainingMinutes goes down). The caller is responsible for
+   * saving the list afterward.
+   *
+   * It returns a result instead of throwing, because bad input here is
+   * ordinary (someone typed 0 or left the box empty), not a program bug:
+   *   failure: { ok: false, error: "message for the person" }
+   *   success: { ok: true,
+   *              dealt: minutes actually subtracted,
+   *              clamped: true if they logged more than was left,
+   *              defeated: true if the bar just hit zero,
+   *              and the item is stamped with a completedAt date }
+   */
+  function applyDamage(item, minutes) {
+    if (!isPositiveWholeNumber(minutes)) {
+      return { ok: false, error: "Enter a whole number of minutes above 0." };
+    }
+    if (item.remainingMinutes === 0) {
+      return { ok: false, error: "This one is already defeated." };
+    }
+
+    // Math.min picks the smaller number, so the bar can never go below 0.
+    // Logging 50 minutes on something with 30 left deals 30.
+    var dealt = Math.min(minutes, item.remainingMinutes);
+    item.remainingMinutes -= dealt;
+
+    // Hitting zero is the moment of completion, so record when. The
+    // Achievements section shows this date and sorts by it.
+    var defeated = item.remainingMinutes === 0;
+    if (defeated) item.completedAt = new Date().toISOString();
+
+    return { ok: true, dealt: dealt, clamped: dealt < minutes, defeated: defeated };
+  }
+
+  // ---------------------------------------------------------------
+  // EDITING
+  // ---------------------------------------------------------------
+
+  /*
+   * planUpdate(item, input) -> what an edit WOULD do, changing nothing.
+   *   failure: { ok: false, errors: [...] }
+   *   success: { ok: true, logged, remainingMinutes, completes, reopens }
+   *
+   * The rule: time you've already logged stays logged. When the total
+   * changes, remaining = new total - logged (never below 0).
+   *   completes: the edit takes an unfinished item down to zero
+   *   reopens:   the edit gives a finished item time left again
+   * The page calls this first so it can warn before a "completes" edit.
+   */
+  function planUpdate(item, input) {
+    var check = validateItem(input);
+    if (!check.ok) return { ok: false, errors: check.errors };
+
+    var logged = item.totalMinutes - item.remainingMinutes;
+    var remaining = Math.max(0, input.totalMinutes - logged);
+    return {
+      ok: true,
+      logged: logged,
+      remainingMinutes: remaining,
+      completes: remaining === 0 && item.remainingMinutes > 0,
+      reopens: remaining > 0 && item.remainingMinutes === 0
+    };
+  }
+
+  /*
+   * updateItem(item, input) -> the same result as planUpdate.
+   * Applies the edit to the item IN PLACE (like applyDamage), so anything
+   * else holding the item, such as the wheel, sees the change. The caller
+   * saves the list afterward. Invalid input changes nothing.
+   */
+  function updateItem(item, input) {
+    var plan = planUpdate(item, input);
+    if (!plan.ok) return plan;
+
+    item.name = input.name.trim();
+    item.type = input.type;
+    item.totalMinutes = input.totalMinutes;
+    item.minBlockMinutes = input.minBlockMinutes;
+    item.remainingMinutes = plan.remainingMinutes;
+
+    // Keep the completion date in step with the item's state.
+    if (plan.remainingMinutes > 0) {
+      delete item.completedAt;                        // back on the shelf
+    } else if (!item.completedAt) {
+      item.completedAt = new Date().toISOString();    // just finished
+    }
+    return plan;
+  }
+
+  // ---------------------------------------------------------------
+  // DELETING
+  // ---------------------------------------------------------------
+
+  /*
+   * removeItem(items, id) -> new array without the item with that id.
+   * filter builds a NEW list and leaves the original alone, so the caller
+   * decides when to swap it in (and then calls saveItems). An id that
+   * isn't in the list just gives back an equal copy.
+   */
+  function removeItem(items, id) {
+    return items.filter(function (item) { return item.id !== id; });
+  }
+
+  // ---------------------------------------------------------------
+  // BACKUP AND RESTORE
+  // A backup is a JSON file: { app, version, exportedAt, items }.
+  // Restoring reads a file someone hands us, and a file is outside input
+  // like any other, so every item is checked and rebuilt field by field.
+  // ---------------------------------------------------------------
+
+  // Rebuilds an item from untrusted data, keeping ONLY the fields we know.
+  // Returns null if it can't be trusted. Besides the usual shape checks,
+  // the id is limited to simple characters, because the page later uses
+  // ids inside selectors, and a name is trimmed to the form's 80 characters.
+  function cleanItem(raw) {
+    if (!looksLikeItem(raw)) return null;
+    if (!/^[A-Za-z0-9_-]{1,64}$/.test(raw.id)) return null;
+    if (raw.minBlockMinutes > raw.totalMinutes) return null;
+    var name = raw.name.trim().slice(0, 80);
+    if (name === "") return null;
+
+    var item = {
+      id: raw.id,
+      name: name,
+      type: raw.type,
+      totalMinutes: raw.totalMinutes,
+      remainingMinutes: raw.remainingMinutes,
+      minBlockMinutes: raw.minBlockMinutes,
+      createdAt: typeof raw.createdAt === "string" ? raw.createdAt : new Date().toISOString()
+    };
+    // A completion date only makes sense on a finished item.
+    if (raw.remainingMinutes === 0 && typeof raw.completedAt === "string") {
+      item.completedAt = raw.completedAt;
+    }
+    return item;
+  }
+
+  // The object that gets written to the backup file. "now" is optional so
+  // tests can pass a fixed date.
+  function makeBackup(items, now) {
+    return {
+      app: "backlog-planner",
+      version: 1,
+      exportedAt: (now || new Date()).toISOString(),
+      items: items
+    };
+  }
+
+  // "backlog-planner-backup-2026-11-14.json" (the date is local time).
+  function backupFileName(date) {
+    function two(n) { return (n < 10 ? "0" : "") + n; }
+    return "backlog-planner-backup-" + date.getFullYear() + "-" +
+      two(date.getMonth() + 1) + "-" + two(date.getDate()) + ".json";
+  }
+
+  /*
+   * parseBackup(text) -> { ok: true, items, skipped } or { ok: false, error }
+   * Never throws. "skipped" counts items in the file that were unusable.
+   * A bare list of items (no wrapper object) is accepted too.
+   */
+  function parseBackup(text) {
+    var data;
+    try {
+      data = JSON.parse(text);
+    } catch (e) {
+      return { ok: false, error: "That file isn't a readable backup (it isn't valid JSON)." };
+    }
+
+    var list = Array.isArray(data) ? data : data && Array.isArray(data.items) ? data.items : null;
+    if (list === null) {
+      return { ok: false, error: "That doesn't look like a Backlog Planner backup." };
+    }
+
+    var items = [];
+    list.forEach(function (raw) {
+      var item = cleanItem(raw);
+      if (item) items.push(item);
+    });
+    if (items.length === 0 && list.length > 0) {
+      return { ok: false, error: "None of the items in that file were usable." };
+    }
+    return { ok: true, items: items, skipped: list.length - items.length };
+  }
+
+  /*
+   * mergeItems(current, incoming) -> { items, added, updated, kept }
+   *
+   * Restoring never deletes anything. For each incoming item:
+   *   - new id            -> added
+   *   - same id, and the incoming copy has MORE progress (less remaining)
+   *                       -> the existing item takes that progress (updated)
+   *   - same id otherwise -> the current copy stays (kept)
+   * Progress only moves forward, so "more progress wins" is a safe rule
+   * when two devices have both been used.
+   *
+   * Updating changes the existing object IN PLACE (rather than swapping in
+   * the new one), so anything else holding that object, like the wheel's
+   * candidates, stays valid. The returned list is a new array.
+   * Note: an item you deleted can come back if the backup still has it.
+   */
+  function mergeItems(current, incoming) {
+    var items = current.slice();
+    var added = 0, updated = 0, kept = 0;
+
+    incoming.forEach(function (item) {
+      var existing = null;
+      for (var i = 0; i < items.length; i++) {
+        if (items[i].id === item.id) { existing = items[i]; break; }
+      }
+      if (existing === null) {
+        items.push(item);
+        added++;
+      } else if (item.remainingMinutes < existing.remainingMinutes) {
+        existing.remainingMinutes = item.remainingMinutes;
+        if (item.completedAt) existing.completedAt = item.completedAt;
+        updated++;
+      } else {
+        kept++;
+      }
+    });
+
+    return { items: items, added: added, updated: updated, kept: kept };
+  }
+
+  // ---------------------------------------------------------------
+  // PUBLIC API
+  // ---------------------------------------------------------------
+
+  // Everything above is private to this file. This object is the list of
+  // things we choose to share with other files.
+  var BacklogStore = {
+    STORAGE_KEY: STORAGE_KEY,
+    TYPES: TYPES,
+    validateItem: validateItem,
+    createItem: createItem,
+    loadItems: loadItems,
+    saveItems: saveItems,
+    applyDamage: applyDamage,
+    removeItem: removeItem,
+    planUpdate: planUpdate,
+    updateItem: updateItem,
+    makeBackup: makeBackup,
+    backupFileName: backupFileName,
+    parseBackup: parseBackup,
+    mergeItems: mergeItems
+  };
+
+  // This file runs in two places and shares itself differently in each:
+  //   Node (the tests): "module" exists, so we export with module.exports.
+  //   Browser: "module" doesn't exist, so we attach to the window, which
+  //            is how app.js can use the name BacklogStore.
+  // "typeof module !== 'undefined'" is the safe way to ask "does this
+  // variable exist?" without causing an error when it doesn't.
+  if (typeof module !== "undefined" && module.exports) {
+    module.exports = BacklogStore;
+  } else {
+    root.BacklogStore = BacklogStore;
+  }
+
+  // The closing line of the IIFE: it passes in "window" when running in a
+  // browser, or "globalThis" otherwise. That value becomes "root" above.
+})(typeof window !== "undefined" ? window : globalThis);
+
+</script>
+  <script>
+/*
+ * decide.js: the "Decide for me" RULES (no page code, so it's easy to test).
+ *
+ * How a search works:
+ *   1. An item qualifies if it has time left AND your minutes are at least
+ *      its minimum block.
+ *   2. Qualifying items are ranked by how close their minimum block is to
+ *      your minutes (a 45m episode beats a 10m chapter when you have 60).
+ *   3. The closest three are the "candidates". One is picked at random.
+ *   4. One reroll per search, drawn from the other candidates.
+ *   5. If nothing qualifies, the closest miss is offered instead.
+ *
+ * A "search" is a plain object:
+ *   { status: "fit" | "closest" | "empty", minutes, candidates, pick, rerollUsed }
+ */
+(function (root) {
+  "use strict";
+
+  var TOP_COUNT = 3;
+
+  // An item with nothing left is "defeated" and never gets picked.
+  function isActive(item) {
+    return item.remainingMinutes > 0;
+  }
+
+  // Checks the minutes the person typed (already converted with Number()).
+  function validateMinutes(minutes) {
+    if (typeof minutes === "number" && Number.isInteger(minutes) && minutes > 0) {
+      return { ok: true };
+    }
+    return { ok: false, error: "Enter how many minutes you have, as a whole number above 0." };
+  }
+
+  // All qualifying items, best match first.
+  // We remember each item's original position (index) so that ties keep
+  // shelf order, which makes the ranking predictable.
+  function rankFits(items, minutes) {
+    return items
+      .map(function (item, index) { return { item: item, index: index }; })
+      .filter(function (entry) {
+        return isActive(entry.item) && entry.item.minBlockMinutes <= minutes;
+      })
+      .sort(function (a, b) {
+        var gapA = minutes - a.item.minBlockMinutes;
+        var gapB = minutes - b.item.minBlockMinutes;
+        return gapA - gapB || a.index - b.index;   // smaller gap first, then shelf order
+      })
+      .map(function (entry) { return entry.item; });
+  }
+
+  // When nothing fits: the active item whose minimum block is just above
+  // your minutes (the smallest overshoot). Returns null if there isn't one.
+  function closestMiss(items, minutes) {
+    var best = null;
+    items.forEach(function (item) {
+      if (!isActive(item) || item.minBlockMinutes <= minutes) return;
+      if (best === null || item.minBlockMinutes < best.minBlockMinutes) best = item;
+    });
+    return best;
+  }
+
+  // Random choice. "random" can be passed in so tests get predictable
+  // results; the real app leaves it out and uses Math.random.
+  function pickRandom(pool, random) {
+    var roll = (random || Math.random)();
+    return pool[Math.min(pool.length - 1, Math.floor(roll * pool.length))];
+  }
+
+  function startSearch(items, minutes, random) {
+    var fits = rankFits(items, minutes);
+    if (fits.length > 0) {
+      var candidates = fits.slice(0, TOP_COUNT);
+      return {
+        status: "fit",
+        minutes: minutes,
+        candidates: candidates,
+        pick: pickRandom(candidates, random),
+        rerollUsed: false
+      };
+    }
+    var miss = closestMiss(items, minutes);
+    if (miss) {
+      return { status: "closest", minutes: minutes, candidates: [miss], pick: miss, rerollUsed: false };
+    }
+    return { status: "empty", minutes: minutes, candidates: [], pick: null, rerollUsed: false };
+  }
+
+  // Who a reroll could land on: the other candidates that still have time
+  // left. Empty once the reroll is used, or when the search isn't a "fit".
+  function rerollPool(search) {
+    if (search.status !== "fit" || search.rerollUsed) return [];
+    return search.candidates.filter(function (item) {
+      return item !== search.pick && isActive(item);
+    });
+  }
+
+  function canReroll(search) {
+    return rerollPool(search).length > 0;
+  }
+
+  // Returns a NEW search with a different pick and rerollUsed = true,
+  // or null if a reroll isn't allowed. The old search is left unchanged.
+  function reroll(search, random) {
+    var pool = rerollPool(search);
+    if (pool.length === 0) return null;
+    return Object.assign({}, search, { pick: pickRandom(pool, random), rerollUsed: true });
+  }
+
+  var BacklogDecide = {
+    TOP_COUNT: TOP_COUNT,
+    validateMinutes: validateMinutes,
+    rankFits: rankFits,
+    closestMiss: closestMiss,
+    startSearch: startSearch,
+    canReroll: canReroll,
+    reroll: reroll
+  };
+
+  if (typeof module !== "undefined" && module.exports) {
+    module.exports = BacklogDecide;
+  } else {
+    root.BacklogDecide = BacklogDecide;
+  }
+})(typeof window !== "undefined" ? window : globalThis);
+
+</script>
+  <script>
+/*
+ * wheel.js: the MOTION MATH for the cartridge wheel (no page code).
+ *
+ * Picture a drum with cartridges standing around its rim, viewed from the
+ * front. As the drum turns, a cartridge swings in from the side, rises as
+ * it passes the front, then settles back. We fake the 3D with plain
+ * numbers: for each slot we work out an angle, then derive its sideways
+ * position, height, size, and fade from that angle.
+ *
+ * "rotation" counts in SLOTS: rotation 1 means the drum turned one slot.
+ */
+(function (root) {
+  "use strict";
+
+  var SPIN_LIFT = 14;       // px a cartridge rises as it passes the front
+  var POP_LIFT = 26;        // extra px for the landing pop-up
+  var RADIUS_PERCENT = 34;  // sideways swing, as a % of the wheel's width
+
+  // A wheel with 2 or 3 candidates gets 6 slots (candidates repeat around
+  // the rim, so six divides evenly). A single candidate needs no wheel.
+  function slotCountFor(candidateCount) {
+    return candidateCount >= 2 ? 6 : 1;
+  }
+
+  // How far slot "index" is from the front, in slots: 0 = front,
+  // positive = to the right, negative = to the left. The % math wraps
+  // around the drum so the answer is always in [-count/2, count/2).
+  function slotOffset(index, rotation, count) {
+    var d = (((index - rotation) % count) + count) % count;
+    if (d >= count / 2) d -= count;
+    return d;
+  }
+
+  // Where and how to draw a slot, given its offset from the front.
+  // "pop" is 0..1 (a bit over 1 while bouncing) for the landing pop-up.
+  //   x       -1..1 as a fraction of the radius (UI turns it into a %)
+  //   lift    px upward
+  //   scale   size multiplier (smaller toward the back)
+  //   opacity 0 once the slot swings behind the drum
+  //   z       stacking order, front on top
+  function slotPose(offset, count, pop) {
+    var angle = (offset / count) * 2 * Math.PI;
+    var depth = Math.cos(angle);                       // 1 front, 0 side, -1 back
+    var front = depth > 0 ? Math.pow(depth, 8) : 0;    // ~1 only right at the front
+    return {
+      x: Math.sin(angle),
+      lift: front * (SPIN_LIFT + POP_LIFT * pop),
+      scale: 0.6 + 0.4 * Math.max(0, depth) + 0.08 * front * pop,
+      opacity: Math.max(0, Math.min(1, depth * 2.5)),
+      z: Math.round((depth + 1) * 100)
+    };
+  }
+
+  // The rotation that parks slot "slotIndex" at the front after turning
+  // AT LEAST minSlots from "current". It's the smallest such value.
+  function landingRotation(current, slotIndex, count, minSlots) {
+    var laps = Math.ceil((current + minSlots - slotIndex) / count);
+    return slotIndex + laps * count;
+  }
+
+  // Easing: t goes 0 -> 1 steadily; these bend it into a feel.
+  // easeOutQuart starts fast and slows to a stop (the spin).
+  function easeOutQuart(t) {
+    return 1 - Math.pow(1 - t, 4);
+  }
+
+  // easeOutBack overshoots past 1 then settles back (the pop-up bounce).
+  function easeOutBack(t) {
+    var c1 = 1.70158;
+    var c3 = c1 + 1;
+    return 1 + c3 * Math.pow(t - 1, 3) + c1 * Math.pow(t - 1, 2);
+  }
+
+  var BacklogWheel = {
+    SPIN_LIFT: SPIN_LIFT,
+    POP_LIFT: POP_LIFT,
+    RADIUS_PERCENT: RADIUS_PERCENT,
+    slotCountFor: slotCountFor,
+    slotOffset: slotOffset,
+    slotPose: slotPose,
+    landingRotation: landingRotation,
+    easeOutQuart: easeOutQuart,
+    easeOutBack: easeOutBack
+  };
+
+  if (typeof module !== "undefined" && module.exports) {
+    module.exports = BacklogWheel;
+  } else {
+    root.BacklogWheel = BacklogWheel;
+  }
+})(typeof window !== "undefined" ? window : globalThis);
+
+</script>
+  <script>
+/*
+ * achievements.js: what a COMPLETED item looks like (data and rules only).
+ *
+ * When an item's health bar hits zero it leaves the shelf and becomes an
+ * achievement card. Each type earns its own title and its own pixel icon,
+ * and style.css gives each type its own card shape.
+ *
+ * Adding a new type later? Add its title and icon here too. The tests
+ * fail if a type in storage.js has no title or icon.
+ */
+(function (root) {
+  "use strict";
+
+  var TITLES = {
+    watch: "Binge Complete",
+    play: "Game Cleared",
+    read: "Last Page Turned",
+    build: "Shipped It"
+  };
+
+  // 8x8 pixel pictures. "X" is a filled square, "." is empty. app.js turns
+  // each map into an SVG, so the icons stay crisp at any size.
+  var ICONS = {
+    watch: [          // a screen with a play button
+      "XXXXXXXX",
+      "X......X",
+      "X.X....X",
+      "X.XXX..X",
+      "X.XXX..X",
+      "X.X....X",
+      "X......X",
+      "XXXXXXXX"
+    ],
+    play: [           // a trophy
+      "XXXXXXXX",
+      "X.XXXX.X",
+      "X.XXXX.X",
+      ".XXXXXX.",
+      "..XXXX..",
+      "...XX...",
+      "..XXXX..",
+      ".XXXXXX."
+    ],
+    read: [           // an open book
+      "XXX..XXX",
+      "X.X..X.X",
+      "X.X..X.X",
+      "X.X..X.X",
+      "X.X..X.X",
+      "XXX..XXX",
+      ".XXXXXX.",
+      "........"
+    ],
+    build: [          // a gear
+      "...XX...",
+      ".X.XX.X.",
+      "..XXXX..",
+      "XXX..XXX",
+      "XXX..XXX",
+      "..XXXX..",
+      ".X.XX.X.",
+      "...XX..."
+    ]
+  };
+
+  // The "defeated" test, in one place: nothing left on the bar.
+  function isDone(item) {
+    return item.remainingMinutes === 0;
+  }
+
+  // When it was completed, as a number we can sort by. Items finished
+  // before completion dates existed have none, so they count as 0 (oldest).
+  function completedTime(item) {
+    var time = Date.parse(item.completedAt);   // NaN if missing or invalid
+    return isNaN(time) ? 0 : time;
+  }
+
+  /*
+   * splitItems(items) -> { active, done }
+   *   active: items still on the shelf, in their original order
+   *   done:   completed items, most recently completed first
+   */
+  function splitItems(items) {
+    return {
+      active: items.filter(function (item) { return !isDone(item); }),
+      done: items.filter(isDone).sort(function (a, b) {
+        return completedTime(b) - completedTime(a);
+      })
+    };
+  }
+
+  var BacklogAchievements = {
+    TITLES: TITLES,
+    ICONS: ICONS,
+    splitItems: splitItems
+  };
+
+  if (typeof module !== "undefined" && module.exports) {
+    module.exports = BacklogAchievements;
+  } else {
+    root.BacklogAchievements = BacklogAchievements;
+  }
+})(typeof window !== "undefined" ? window : globalThis);
+
+</script>
+  <script>
+window.BacklogHostSave = function (fileName, text) {
+  var ready = window.claude && window.claude.use ? window.claude.use("downloads") : Promise.resolve(null);
+  return ready.then(function (downloads) {
+    if (!downloads) throw { code: "unavailable" };
+    return downloads.save({ filename: fileName, data: text });
+  });
+};
+</script>
+<script>
+/*
+ * app.js: connects the data (storage.js) to the page (index.html).
+ *
+ * Step 2: add items with a form, save them, and draw them as cartridges.
+ * Step 3: each cartridge has a "Log" form that lowers its health bar.
+ * Step 4: "Decide for me" spins a cartridge wheel and lands on a pick
+ * (rules in decide.js, motion math in wheel.js).
+ * Also: Decide locks after a pick until you log time; items can be deleted;
+ * completed items move to an Achievements section (see achievements.js);
+ * the list can be downloaded as a backup file and restored from one;
+ * items can be edited, keeping the time already logged.
+ *
+ * Flow:
+ *   page opens -> load saved items -> draw them
+ *   add form submitted -> validate -> create -> save -> redraw
+ *   log form submitted -> applyDamage -> save -> redraw
+ */
+
+// IIFE: keeps our variables private to this file (see storage.js notes).
+(function () {
+  "use strict";
+
+  // ---------------------------------------------------------------
+  // STATE: the one list of items the whole page works from.
+  // Loaded once at startup; changed only when the form adds to it.
+  // ---------------------------------------------------------------
+  var items = BacklogStore.loadItems();
+
+  // "Decide for me" state.
+  var search = null;      // the current search object from decide.js, or null
+  var spinning = false;   // true during the animation, so spins can't overlap
+  var runId = 0;          // bumped to cancel an animation in progress
+  var locked = false;     // true after a pick, until you log time
+  var editingItem = null; // the item being edited in the form, or null when adding
+  var completionWarned = false;   // true once an edit that finishes an item has been warned about
+  // What the wheel is showing. rotation counts in slots; pop is 0..1 for
+  // the landing pop-up.
+  var wheel = { slotCount: 1, slotItems: [], slotEls: [], rotation: 0, pop: 0 };
+
+  // ---------------------------------------------------------------
+  // FIND PAGE ELEMENTS (once, up front)
+  // Looking elements up is slowish, so we do it once and reuse them.
+  // Each id matches an id="..." in index.html.
+  // ---------------------------------------------------------------
+  var form = document.getElementById("add-form");
+  var nameInput = document.getElementById("name");
+  var typeSelect = document.getElementById("type");
+  var totalInput = document.getElementById("total");
+  var blockInput = document.getElementById("block");
+  var errorList = document.getElementById("form-errors");
+  var status = document.getElementById("status");
+  var shelf = document.getElementById("shelf");
+
+  // The Decide for me section.
+  var decideForm = document.getElementById("decide-form");
+  var minutesInput = document.getElementById("minutes");
+  var decideButton = document.getElementById("decide-button");
+  var decideMessage = document.getElementById("decide-message");
+  var closestPrompt = document.getElementById("closest-prompt");
+  var closestText = document.getElementById("closest-text");
+  var anywayButton = document.getElementById("anyway-button");
+  var wheelEl = document.getElementById("wheel");
+  var slotsEl = document.getElementById("wheel-slots");
+  var resultEl = document.getElementById("result");
+  var resultLabel = document.getElementById("result-label");
+  var resultName = document.getElementById("result-name");
+  var resultDetail = document.getElementById("result-detail");
+  var rerollButton = document.getElementById("reroll-button");
+  var logPickButton = document.getElementById("log-pick-button");
+  var lockNote = document.getElementById("lock-note");
+
+  // Achievements, plus the two headings that receive focus after a delete.
+  var achievements = document.getElementById("achievements");
+  var achievementsStatus = document.getElementById("achievements-status");
+  var shelfHeading = document.getElementById("shelf-heading");
+  var achievementsHeading = document.getElementById("achievements-heading");
+
+  // Backup and restore.
+  var exportButton = document.getElementById("export-button");
+  var importButton = document.getElementById("import-button");
+  var importFile = document.getElementById("import-file");
+  var backupMessage = document.getElementById("backup-message");
+
+  // Editing (the add form's heading, note, and buttons).
+  var addHeading = document.getElementById("add-heading");
+  var editNote = document.getElementById("edit-note");
+  var saveButton = document.getElementById("save-button");
+  var cancelEditButton = document.getElementById("cancel-edit-button");
+
+  // ---------------------------------------------------------------
+  // SMALL HELPERS
+  // ---------------------------------------------------------------
+
+  // Turns minutes into friendly text: 450 -> "7h 30m", 45 -> "45m".
+  // Math.floor drops the decimals; % (remainder) gives the leftover minutes.
+  function formatMinutes(total) {
+    var hours = Math.floor(total / 60);
+    var minutes = total % 60;
+    if (hours === 0) return minutes + "m";
+    if (minutes === 0) return hours + "h";
+    return hours + "h " + minutes + "m";
+  }
+
+  // Shortcut for building an element: el("p", "hint", "Some text").
+  // We build the page with createElement and textContent instead of
+  // pasting strings into innerHTML. That matters for safety: if someone
+  // names an item "<script>...", textContent shows it as plain text
+  // instead of running it as code.
+  function el(tag, className, text) {
+    var node = document.createElement(tag);
+    if (className) node.className = className;
+    if (text !== undefined) node.textContent = text;
+    return node;
+  }
+
+  // Picks the bar color: more than half left is "high", and so on.
+  // The CSS decides what color each level actually is.
+  function barLevel(percent) {
+    if (percent > 50) return "high";
+    if (percent > 25) return "mid";
+    return "low";
+  }
+
+  // ---------------------------------------------------------------
+  // DRAWING
+  // ---------------------------------------------------------------
+
+  // Fills the Type dropdown from BacklogStore.TYPES, so the list of
+  // types lives in one place. Add a type there and it appears here.
+  function fillTypeOptions() {
+    var placeholder = el("option", "", "Choose a type");
+    placeholder.value = "";   // empty value fails validation on purpose
+    typeSelect.appendChild(placeholder);
+
+    BacklogStore.TYPES.forEach(function (type) {
+      var option = el("option", "", type);
+      option.value = type;
+      typeSelect.appendChild(option);
+    });
+  }
+
+  // Writes the sentence shown after a successful log, based on the
+  // result object that BacklogStore.applyDamage returned.
+  function describeHit(item, result) {
+    if (result.defeated) {
+      return result.clamped
+        ? "You defeated " + item.name + "! Only " + formatMinutes(result.dealt) +
+          " was left, so that's what counted. It's in your achievements now."
+        : "You defeated " + item.name + "! It's in your achievements now.";
+    }
+    return "Logged " + formatMinutes(result.dealt) + " on " + item.name + ". " +
+      formatMinutes(item.remainingMinutes) + " left.";
+  }
+
+  // After a redraw, every element is brand new, so keyboard focus is lost.
+  // This puts the cursor back in the same cartridge's log box, so someone
+  // can log again without hunting for it. querySelector finds the first
+  // element matching a CSS-style selector, or null if there isn't one.
+  function focusLogInput(id) {
+    var input = shelf.querySelector('[data-id="' + id + '"] .log-input');
+    if (input) input.focus();
+  }
+
+  // Builds the small "minutes + Log" form that goes inside a cartridge.
+  // Each cartridge gets its OWN form, and the function it listens with
+  // "remembers" which item it belongs to (this is called a closure).
+  function buildLogForm(item) {
+    var logForm = el("form", "log-form");
+    logForm.setAttribute("novalidate", "");   // we show our own messages
+
+    var input = el("input", "log-input");
+    input.type = "number";
+    input.min = "1";
+    input.step = "1";
+    input.placeholder = "min";
+    input.setAttribute("inputmode", "numeric");
+    // No visible label (space is tight), so screen readers get this one.
+    input.setAttribute("aria-label", "Minutes to log for " + item.name);
+
+    var button = el("button", "log-button", "Log");
+    button.type = "submit";
+
+    // Hidden until something goes wrong. role="alert" announces it.
+    var message = el("p", "log-error");
+    message.setAttribute("role", "alert");
+    message.hidden = true;
+
+    logForm.appendChild(input);
+    logForm.appendChild(button);
+    logForm.appendChild(message);
+
+    logForm.addEventListener("submit", function (event) {
+      event.preventDefault();
+
+      // Number() turns the typed text into a number (empty becomes 0,
+      // which applyDamage rejects with a clear message).
+      var result = BacklogStore.applyDamage(item, Number(input.value));
+
+      if (!result.ok) {
+        // Show the problem on THIS cartridge. No redraw, so whatever the
+        // person typed stays in the box for them to fix.
+        message.textContent = result.error;
+        message.hidden = false;
+        return;
+      }
+
+      // "item" is the same object that lives in the items array, so
+      // applyDamage already changed it there. Just save and redraw.
+      var saved = BacklogStore.saveItems(items);
+      // Logging time completes the decide -> do -> log loop, so it clears
+      // the wheel and unlocks Decide. (Also clear if the picked item was
+      // just defeated, even when Decide wasn't locked.)
+      if (locked || (search && search.pick === item && result.defeated)) resetPicker();
+      render(
+        describeHit(item, result) +
+          (saved ? "" : " (This browser wouldn't save it, so it will be lost when you close the tab.)")
+      );
+      // A defeated item leaves the shelf, so there's no log box to return to.
+      if (result.defeated) {
+        achievementsHeading.focus();
+      } else {
+        focusLogInput(item.id);
+      }
+    });
+
+    return logForm;
+  }
+
+  // ---------------------------------------------------------------
+  // EDITING
+  // The add form doubles as the edit form. "Edit" fills it with the item's
+  // values and changes its wording; saving then updates that item instead
+  // of adding a new one. The rules (like "logged time stays logged") live
+  // in storage.js.
+  // ---------------------------------------------------------------
+
+  // Switches the form between "add" (item = null) and "edit" (an item).
+  function setFormMode(item) {
+    editingItem = item;
+    completionWarned = false;
+    addHeading.textContent = item ? "Edit item" : "Add to your shelf";
+    saveButton.textContent = item ? "Save changes" : "Add to shelf";
+    cancelEditButton.hidden = !item;
+    editNote.hidden = !item;
+    if (!item) return;
+
+    var logged = item.totalMinutes - item.remainingMinutes;
+    if (item.remainingMinutes === 0) {
+      editNote.textContent = "Editing " + item.name + " (finished). A bigger size puts it back on your shelf.";
+    } else if (logged > 0) {
+      editNote.textContent = "Editing " + item.name + ". The " + formatMinutes(logged) +
+        " you've logged stays logged when you change the size.";
+    } else {
+      editNote.textContent = "Editing " + item.name + ".";
+    }
+  }
+
+  function startEdit(item) {
+    showErrors([]);
+    nameInput.value = item.name;
+    typeSelect.value = item.type;
+    totalInput.value = String(item.totalMinutes);
+    blockInput.value = String(item.minBlockMinutes);
+    setFormMode(item);
+    nameInput.focus();   // also scrolls the form into view
+  }
+
+  function cancelEdit() {
+    form.reset();
+    showErrors([]);
+    setFormMode(null);
+  }
+
+  // The wheel holds the same item objects, so an edit changes them in
+  // place. This redraws the small cartridges and the result text to match.
+  // It does NOT clear the wheel, so editing can't be used to unlock Decide
+  // or refresh the reroll.
+  function refreshPicker() {
+    wheel.slotEls.forEach(function (slotEl, i) {
+      slotEl.textContent = "";
+      slotEl.appendChild(buildMiniCartridge(wheel.slotItems[i]));
+    });
+    if (!resultEl.hidden) showResult();
+  }
+
+  // Called by the form when it's in edit mode and the input is valid.
+  function finishEdit(input) {
+    var item = editingItem;
+    var plan = BacklogStore.planUpdate(item, input);
+    if (!plan.ok) {
+      showErrors(plan.errors);
+      return;
+    }
+
+    // An edit that finishes the item needs a second press to confirm, so a
+    // slip like 45 instead of 450 can't finish something by accident.
+    if (plan.completes && !completionWarned) {
+      completionWarned = true;
+      showErrors([
+        "That's no more than the " + formatMinutes(plan.logged) + " you've already logged, so saving will " +
+        "mark " + item.name + " as defeated. Press Save changes again to confirm."
+      ]);
+      return;
+    }
+
+    BacklogStore.updateItem(item, input);
+    var saved = BacklogStore.saveItems(items);
+
+    if (search) {
+      if (plan.completes && search.pick === item) {
+        resetPicker();          // the picked item is finished, like defeating it by logging
+      } else if (!closestPrompt.hidden) {
+        resetPicker();          // an offer on screen may be out of date, and nothing is locked yet
+      } else {
+        refreshPicker();
+      }
+    }
+
+    var note = "Updated " + item.name + ".";
+    if (plan.completes) note += " It's defeated now, so it moved to your achievements.";
+    if (plan.reopens) note += " It's back on your shelf with " + formatMinutes(item.remainingMinutes) + " left.";
+    if (!saved) note += " (This browser wouldn't save the change.)";
+
+    cancelEdit();
+    render(note);
+    (item.remainingMinutes === 0 ? achievementsHeading : shelfHeading).focus();
+  }
+
+  // Changing the total means the "are you sure?" question is a new one.
+  totalInput.addEventListener("input", function () {
+    completionWarned = false;
+  });
+
+  cancelEditButton.addEventListener("click", function () {
+    cancelEdit();
+    shelfHeading.focus();
+  });
+
+  // ---------------------------------------------------------------
+  // DELETING AND ACHIEVEMENTS
+  // ---------------------------------------------------------------
+
+  // Removes an item for good. If the wheel had it as a candidate, the wheel
+  // is cleared too, so it can never land on something that's gone.
+  function deleteItem(item) {
+    if (editingItem === item) cancelEdit();   // don't leave the form editing something that's gone
+    var wasDone = item.remainingMinutes === 0;
+    items = BacklogStore.removeItem(items, item.id);   // a new list without it
+    var saved = BacklogStore.saveItems(items);
+    if (search && search.candidates.indexOf(item) !== -1) resetPicker();
+    render(
+      "Deleted " + item.name + "." +
+        (saved ? "" : " (This browser wouldn't save the change, so it may come back.)")
+    );
+    // The card is gone, so put keyboard focus on its section's heading.
+    (wasDone ? achievementsHeading : shelfHeading).focus();
+  }
+
+  // The Edit and Delete buttons for a card. Delete asks "Delete this?" before doing anything.
+  // The confirm step is just two hidden/shown elements inside this one
+  // control, so nothing needs to be stored. Focus lands on "Keep" (the
+  // safe choice) when the question appears.
+  function buildItemControls(item) {
+    var box = el("div", "delete-control");
+
+    var editButton = el("button", "edit-button", "Edit");
+    editButton.type = "button";
+    editButton.setAttribute("aria-label", "Edit " + item.name);
+    editButton.addEventListener("click", function () {
+      startEdit(item);
+    });
+
+    var deleteButton = el("button", "delete-button", "Delete");
+    deleteButton.type = "button";
+    deleteButton.setAttribute("aria-label", "Delete " + item.name);
+
+    var confirmBox = el("div", "delete-control");
+    confirmBox.hidden = true;
+    var yes = el("button", "delete-yes", "Yes, delete");
+    yes.type = "button";
+    var keep = el("button", "delete-keep", "Keep");
+    keep.type = "button";
+    confirmBox.appendChild(el("span", "delete-question", "Delete this?"));
+    confirmBox.appendChild(yes);
+    confirmBox.appendChild(keep);
+
+    deleteButton.addEventListener("click", function () {
+      editButton.hidden = true;
+      deleteButton.hidden = true;
+      confirmBox.hidden = false;
+      keep.focus();
+    });
+    keep.addEventListener("click", function () {
+      confirmBox.hidden = true;
+      editButton.hidden = false;
+      deleteButton.hidden = false;
+      deleteButton.focus();
+    });
+    yes.addEventListener("click", function () {
+      deleteItem(item);
+    });
+
+    box.appendChild(editButton);
+    box.appendChild(deleteButton);
+    box.appendChild(confirmBox);
+    return box;
+  }
+
+  // Draws a pixel icon from the text map in achievements.js. Each "X"
+  // becomes a 1x1 square in an 8x8 grid. The SVG namespace URL is required
+  // when creating SVG elements from JavaScript.
+  function buildIcon(type) {
+    var svgNS = "http://www.w3.org/2000/svg";
+    var svg = document.createElementNS(svgNS, "svg");
+    svg.setAttribute("viewBox", "0 0 8 8");
+    svg.setAttribute("class", "achievement-icon");
+    svg.setAttribute("aria-hidden", "true");   // decorative
+    BacklogAchievements.ICONS[type].forEach(function (row, y) {
+      for (var x = 0; x < row.length; x++) {
+        if (row.charAt(x) !== "X") continue;
+        var square = document.createElementNS(svgNS, "rect");
+        square.setAttribute("x", String(x));
+        square.setAttribute("y", String(y));
+        square.setAttribute("width", "1");
+        square.setAttribute("height", "1");
+        square.setAttribute("fill", "currentColor");
+        svg.appendChild(square);
+      }
+    });
+    return svg;
+  }
+
+  // "Nov 13, 2026", or "" if the date is missing or unreadable (items
+  // finished before completion dates existed).
+  function formatDate(isoText) {
+    var date = new Date(isoText);
+    if (isNaN(date.getTime())) return "";
+    return date.toLocaleDateString(undefined, { month: "short", day: "numeric", year: "numeric" });
+  }
+
+  // One achievement card. style.css gives each type its own shape through
+  // the data-type attribute: ticket stub, trophy plaque, parchment, blueprint.
+  function buildAchievement(item) {
+    var li = el("li", "achievement");
+    li.setAttribute("data-type", item.type);
+
+    li.appendChild(buildIcon(item.type));
+    li.appendChild(el("p", "achievement-title", BacklogAchievements.TITLES[item.type]));
+    li.appendChild(el("h3", "achievement-name", item.name));
+    li.appendChild(el("p", "achievement-stats", formatMinutes(item.totalMinutes) + " cleared"));
+
+    var when = formatDate(item.completedAt);
+    if (when) li.appendChild(el("p", "achievement-date", "Completed " + when));
+
+    li.appendChild(buildItemControls(item));
+    return li;
+  }
+
+  // Builds the HTML for one cartridge from one item. Returns an <li>.
+  function buildCartridge(item) {
+    // How full the bar is, as a whole-number percent.
+    var percent = Math.round((item.remainingMinutes / item.totalMinutes) * 100);
+
+    var li = el("li", "cartridge");
+    // style.css reads this attribute to choose the cartridge color.
+    li.setAttribute("data-type", item.type);
+    // Lets focusLogInput find this exact cartridge after a redraw.
+    li.setAttribute("data-id", item.id);
+
+    var body = el("article", "cartridge-body");
+    body.appendChild(el("div", "cartridge-grip"));
+    body.appendChild(el("p", "cartridge-type", item.type));
+
+    // The cream label sticker with the name and minimum block.
+    var label = el("div", "cartridge-label");
+    label.appendChild(el("h3", "cartridge-name", item.name));
+    label.appendChild(
+      el("p", "cartridge-block", "Starts at " + formatMinutes(item.minBlockMinutes))
+    );
+    body.appendChild(label);
+
+    // The health bar. role="progressbar" plus the aria-value attributes
+    // let screen readers announce "Severance health, 450 of 450".
+    var track = el("div", "health-track");
+    track.setAttribute("role", "progressbar");
+    track.setAttribute("aria-label", item.name + " health");
+    track.setAttribute("aria-valuemin", "0");
+    track.setAttribute("aria-valuemax", String(item.totalMinutes));
+    track.setAttribute("aria-valuenow", String(item.remainingMinutes));
+
+    var fill = el("div", "health-fill");
+    fill.setAttribute("data-level", barLevel(percent));
+    // Hand the width to CSS as a custom property (--pct in style.css).
+    fill.style.setProperty("--pct", percent + "%");
+    track.appendChild(fill);
+    body.appendChild(track);
+
+    body.appendChild(
+      el("p", "health-text",
+        formatMinutes(item.remainingMinutes) + " left of " + formatMinutes(item.totalMinutes))
+    );
+
+    // A defeated item (bar at zero) has nothing left to log, so it gets
+    // a badge instead of the form. Everything else gets the log form.
+    // The shelf only holds unfinished items (completed ones become
+    // achievements), so every cartridge gets a log form and a delete control.
+    body.appendChild(buildLogForm(item));
+    body.appendChild(buildItemControls(item));
+
+    li.appendChild(body);
+    return li;
+  }
+
+  // Redraws the whole shelf from the items list. The simplest approach:
+  // wipe it and rebuild. With a personal backlog (dozens of items) this
+  // is instant, and it can never drift out of sync with the data.
+  // "notice" is optional. When given (like "Logged 20m on MGRR."), it
+  // replaces the usual count in the status line. Calling render() with no
+  // argument gives the normal message. In JavaScript a missing argument is
+  // undefined, which counts as false in the "||" below.
+  function render(notice) {
+    // Unfinished items go on the shelf; completed ones become achievements.
+    var parts = BacklogAchievements.splitItems(items);
+
+    shelf.textContent = "";   // clears everything inside
+    parts.active.forEach(function (item) {
+      shelf.appendChild(buildCartridge(item));
+    });
+
+    achievements.textContent = "";
+    parts.done.forEach(function (item) {
+      achievements.appendChild(buildAchievement(item));
+    });
+
+    status.textContent =
+      notice ||
+      (items.length === 0
+        ? "Your shelf is empty. Add something above to get started."
+        : parts.active.length === 0
+          ? "Your shelf is clear. Add something new to keep going."
+          : parts.active.length + (parts.active.length === 1 ? " item" : " items") + " on your shelf.");
+
+    achievementsStatus.textContent =
+      parts.done.length === 0
+        ? "Nothing yet. Defeat something on your shelf and it lands here."
+        : parts.done.length + " cleared.";
+  }
+
+  // Shows a list of messages in the error box, or hides it if there are none.
+  function showErrors(messages) {
+    errorList.textContent = "";
+    messages.forEach(function (message) {
+      errorList.appendChild(el("li", "", message));
+    });
+    // The "hidden" attribute is what hides/shows the box (see style.css).
+    errorList.hidden = messages.length === 0;
+  }
+
+  // ---------------------------------------------------------------
+  // THE FORM
+  // ---------------------------------------------------------------
+
+  // An "event listener": run this function whenever the form is submitted
+  // (button click or pressing Enter in a field).
+  form.addEventListener("submit", function (event) {
+    // Stop the browser's default behavior, which would reload the page.
+    event.preventDefault();
+
+    // Read the fields. Inputs always give back TEXT, even number inputs,
+    // so Number() converts the minutes. An empty box becomes 0, which
+    // validation then rejects with a clear message.
+    var input = {
+      name: nameInput.value,
+      type: typeSelect.value,
+      totalMinutes: Number(totalInput.value),
+      minBlockMinutes: Number(blockInput.value)
+    };
+
+    // Ask storage.js whether the input is acceptable.
+    var result = BacklogStore.validateItem(input);
+    if (!result.ok) {
+      showErrors(result.errors);
+      return;   // stop here; keep what the user typed so they can fix it
+    }
+
+    // In edit mode the same form updates the item instead of adding one.
+    if (editingItem) {
+      finishEdit(input);
+      return;
+    }
+
+    // Valid: build the item, add it, and save the whole list.
+    items.push(BacklogStore.createItem(input));
+    var saved = BacklogStore.saveItems(items);
+
+    render();
+    // If the browser refused to save, say so, because the item would
+    // disappear when the tab closes. Otherwise clear any old errors.
+    showErrors(
+      saved ? [] : ["Added, but this browser wouldn't save it. It will be gone when you close the tab."]
+    );
+
+    form.reset();        // empty the fields
+    nameInput.focus();   // ready for the next one
+  });
+
+  // ---------------------------------------------------------------
+  // DECIDE FOR ME: the cartridge wheel
+  // The picking rules live in decide.js and the motion math in wheel.js.
+  // This section connects them to the page and runs the animation.
+  // ---------------------------------------------------------------
+
+  // Someone who asked their system for less motion gets the answer
+  // without the spin.
+  function prefersReducedMotion() {
+    return typeof window.matchMedia === "function" &&
+      window.matchMedia("(prefers-reduced-motion: reduce)").matches;
+  }
+
+  // Calls onFrame(t) on every screen refresh, with t running 0 -> 1 over
+  // "duration" ms, then onDone(). requestAnimationFrame asks the browser to
+  // call us just before its next repaint (about 60 times a second).
+  // If resetPicker() runs mid-animation, runId changes and this stops.
+  function animate(duration, onFrame, onDone) {
+    var mine = runId;
+    var startTime = null;
+    function step(now) {
+      if (mine !== runId) return;
+      if (startTime === null) startTime = now;
+      var t = Math.min(1, (now - startTime) / duration);
+      onFrame(t);
+      if (t < 1) {
+        requestAnimationFrame(step);
+      } else {
+        onDone();
+      }
+    }
+    requestAnimationFrame(step);
+  }
+
+  function capitalize(text) {
+    return text.charAt(0).toUpperCase() + text.slice(1);
+  }
+
+  function showDecideMessage(text) {
+    decideMessage.textContent = text;
+    decideMessage.hidden = text === "";
+  }
+
+  // The lock: once the wheel has picked, Decide stays locked until you log
+  // time on something. Otherwise you could press it again and again to get
+  // a fresh reroll every time. (Reloading the page also clears it. It's an
+  // honor system, and it keeps the loop honest: decide, do, log.)
+  function lockDecide() {
+    locked = true;
+    decideButton.disabled = true;
+    decideButton.textContent = "Locked";
+    minutesInput.disabled = true;
+    lockNote.hidden = false;
+  }
+
+  function unlockDecide() {
+    locked = false;
+    decideButton.disabled = false;
+    decideButton.textContent = "Decide for me";
+    minutesInput.disabled = false;
+    lockNote.hidden = true;
+  }
+
+  // Back to a blank slate: no wheel, no result, no message.
+  function resetPicker() {
+    runId++;                      // cancels any animation in progress
+    search = null;
+    spinning = false;
+    unlockDecide();
+    wheelEl.hidden = true;
+    resultEl.hidden = true;
+    closestPrompt.hidden = true;
+    showDecideMessage("");
+  }
+
+  // A small cartridge for the wheel.
+  function buildMiniCartridge(item) {
+    var cart = el("div", "mini-cart");
+    cart.setAttribute("data-type", item.type);
+    cart.appendChild(el("div", "mini-grip"));
+    cart.appendChild(el("p", "mini-type", item.type));
+    cart.appendChild(el("p", "mini-name", item.name));
+    return cart;
+  }
+
+  // Puts every slot where the current rotation says it belongs.
+  // Called on every animation frame. "left" is a percentage of the wheel's
+  // width, so no pixel measuring is needed.
+  function layoutWheel() {
+    wheel.slotEls.forEach(function (slotEl, i) {
+      var offset = BacklogWheel.slotOffset(i, wheel.rotation, wheel.slotCount);
+      var pose = BacklogWheel.slotPose(offset, wheel.slotCount, wheel.pop);
+      slotEl.style.left = 50 + pose.x * BacklogWheel.RADIUS_PERCENT + "%";
+      slotEl.style.transform =
+        "translateX(-50%) translateY(" + -pose.lift + "px) scale(" + pose.scale + ")";
+      slotEl.style.opacity = String(pose.opacity);
+      slotEl.style.zIndex = String(pose.z);
+    });
+  }
+
+  // Fills the wheel with the candidates, repeated around the rim.
+  function setupWheel(candidates) {
+    wheel.slotCount = BacklogWheel.slotCountFor(candidates.length);
+    wheel.slotItems = [];
+    wheel.slotEls = [];
+    wheel.rotation = 0;
+    wheel.pop = 0;
+    slotsEl.textContent = "";
+
+    for (var i = 0; i < wheel.slotCount; i++) {
+      var item = candidates[i % candidates.length];
+      var slotEl = el("div", "wheel-slot");
+      slotEl.appendChild(buildMiniCartridge(item));
+      slotsEl.appendChild(slotEl);
+      wheel.slotItems.push(item);
+      wheel.slotEls.push(slotEl);
+    }
+    wheelEl.hidden = false;
+    layoutWheel();
+  }
+
+  // Gives the slot at the front a glow (or removes it from all slots).
+  function markWinner(on) {
+    wheel.slotEls.forEach(function (slotEl, i) {
+      var atFront = BacklogWheel.slotOffset(i, wheel.rotation, wheel.slotCount) === 0;
+      slotEl.className = on && atFront ? "wheel-slot is-winner" : "wheel-slot";
+    });
+  }
+
+  // Fills in and reveals the result block under the wheel.
+  function showResult() {
+    var pick = search.pick;
+    var isClosest = search.status === "closest";
+
+    resultLabel.textContent = isClosest ? "Closest match" : "Your pick";
+    resultName.textContent = pick.name;
+    resultDetail.textContent = isClosest
+      ? "Needs " + formatMinutes(pick.minBlockMinutes) + ", but it's your closest match."
+      : capitalize(pick.type) + ". Starts at " + formatMinutes(pick.minBlockMinutes) +
+        ", and you have " + formatMinutes(search.minutes) + ".";
+
+    // Reroll button: hidden if a reroll was never possible, disabled
+    // ("used") once spent, otherwise ready.
+    var canReroll = BacklogDecide.canReroll(search);
+    rerollButton.hidden = !(canReroll || search.rerollUsed);
+    rerollButton.disabled = !canReroll;
+    rerollButton.textContent = canReroll ? "Reroll (1 left)" : "Reroll used";
+
+    resultEl.hidden = false;
+  }
+
+  // The whole show, in order:
+  //   1. (reroll only) lower the old winner
+  //   2. spin the wheel, easing to a stop on the pick
+  //   3. pop the winner up with a little bounce
+  //   4. reveal the result
+  // minSlots = the least it must turn; duration = how long the spin lasts (ms).
+  function landOn(pick, minSlots, duration) {
+    spinning = true;
+    lockDecide();
+    rerollButton.disabled = true;
+    resultEl.hidden = true;
+    markWinner(false);
+
+    var reduced = prefersReducedMotion();
+    var slot = wheel.slotItems.indexOf(pick);
+
+    function finish() {
+      wheel.rotation = wheel.rotation % wheel.slotCount;   // keep the number small
+      layoutWheel();
+      markWinner(true);
+      spinning = false;
+      showResult();
+    }
+
+    function popUp() {
+      if (reduced) {
+        wheel.pop = 1;
+        layoutWheel();
+        finish();
+        return;
+      }
+      animate(450, function (t) {
+        wheel.pop = BacklogWheel.easeOutBack(t);
+        layoutWheel();
+      }, finish);
+    }
+
+    function spin() {
+      if (wheel.slotCount === 1) {   // a lone candidate has nothing to spin past
+        popUp();
+        return;
+      }
+      var start = wheel.rotation;
+      var end = BacklogWheel.landingRotation(start, slot, wheel.slotCount, minSlots);
+      if (reduced) {
+        wheel.rotation = end;
+        layoutWheel();
+        popUp();
+        return;
+      }
+      animate(duration, function (t) {
+        wheel.rotation = start + (end - start) * BacklogWheel.easeOutQuart(t);
+        layoutWheel();
+      }, popUp);
+    }
+
+    var from = wheel.pop;
+    if (from > 0 && !reduced) {
+      animate(250, function (t) {
+        wheel.pop = from * (1 - t);
+        layoutWheel();
+      }, function () { wheel.pop = 0; spin(); });
+    } else {
+      wheel.pop = 0;
+      layoutWheel();
+      spin();
+    }
+  }
+
+  decideForm.addEventListener("submit", function (event) {
+    event.preventDefault();
+    if (spinning || locked) return;
+
+    var minutes = Number(minutesInput.value);
+    var check = BacklogDecide.validateMinutes(minutes);
+    resetPicker();
+    if (!check.ok) {
+      showDecideMessage(check.error);
+      return;
+    }
+
+    search = BacklogDecide.startSearch(items, minutes);
+
+    if (search.status === "empty") {
+      search = null;
+      showDecideMessage("Nothing left to pick from. Add something to your shelf first.");
+    } else if (search.status === "closest") {
+      // Opt-in: describe the closest match and let the person choose.
+      closestText.textContent =
+        "Nothing on your shelf fits " + formatMinutes(minutes) + ". Closest match: " +
+        search.pick.name + ", which needs " + formatMinutes(search.pick.minBlockMinutes) + ".";
+      closestPrompt.hidden = false;
+    } else {
+      setupWheel(search.candidates);
+      landOn(search.pick, 15, 3400);
+    }
+  });
+
+  rerollButton.addEventListener("click", function () {
+    if (spinning || !search) return;
+    var next = BacklogDecide.reroll(search);
+    if (!next) return;
+    search = next;
+    landOn(search.pick, 9, 2600);
+  });
+
+  anywayButton.addEventListener("click", function () {
+    if (!search) return;
+    closestPrompt.hidden = true;
+    setupWheel([search.pick]);
+    landOn(search.pick, 0, 0);
+  });
+
+  // Jump to the pick's log box on the shelf (focusing scrolls it into view).
+  logPickButton.addEventListener("click", function () {
+    if (search && search.pick) focusLogInput(search.pick.id);
+  });
+
+  // ---------------------------------------------------------------
+  // BACKUP AND RESTORE
+  // The rules (file format, safety checks, merging) live in storage.js.
+  // This section handles the buttons and the file itself.
+  // ---------------------------------------------------------------
+
+  function showBackupMessage(text, isError) {
+    backupMessage.textContent = text;
+    backupMessage.className = isError ? "backup-message is-error" : "backup-message";
+    backupMessage.hidden = text === "";
+  }
+
+  function countText(n) {
+    return n + (n === 1 ? " item" : " items");
+  }
+
+  // Saves a text file for the person. The usual way: make a temporary link
+  // to the text and click it. Some hosting environments sandbox downloads
+  // and offer their own way to save a file; if one provided
+  // window.BacklogHostSave, use that instead. Either way this returns a
+  // Promise, which rejects if the save was declined or failed.
+  function downloadTextFile(fileName, text) {
+    if (typeof window.BacklogHostSave === "function") {
+      return window.BacklogHostSave(fileName, text);
+    }
+    var blob = new Blob([text], { type: "application/json" });
+    var url = URL.createObjectURL(blob);
+    var link = document.createElement("a");
+    link.href = url;
+    link.download = fileName;   // tells the browser to save instead of open
+    document.body.appendChild(link);
+    link.click();
+    link.remove();
+    // Free the temporary URL a moment later, once the download has started.
+    setTimeout(function () { URL.revokeObjectURL(url); }, 1000);
+    return Promise.resolve();
+  }
+
+  // Reads a restored file's text, merges it in, saves, and reports.
+  function restoreFromText(text) {
+    var parsed = BacklogStore.parseBackup(text);
+    if (!parsed.ok) {
+      showBackupMessage(parsed.error, true);
+      return;
+    }
+    if (parsed.items.length === 0) {
+      showBackupMessage("That backup has no items in it.", true);
+      return;
+    }
+
+    var merged = BacklogStore.mergeItems(items, parsed.items);
+    items = merged.items;
+    var saved = BacklogStore.saveItems(items);
+
+    // A restore can finish the item the wheel picked. Treat that like
+    // defeating it: clear the wheel.
+    if (search && search.pick && search.pick.remainingMinutes === 0) resetPicker();
+    render();
+
+    var message;
+    if (merged.added + merged.updated === 0) {
+      message = "Nothing new in that backup. Everything was already on your shelf.";
+    } else {
+      message = "Restored: " + merged.added + " added, " + merged.updated + " updated, " +
+        merged.kept + " already up to date.";
+    }
+    if (parsed.skipped > 0) {
+      message += " " + countText(parsed.skipped) + " in the file couldn't be used.";
+    }
+    if (!saved) message += " This browser wouldn't save the result, so it may be lost.";
+    showBackupMessage(message, !saved);
+  }
+
+  exportButton.addEventListener("click", function () {
+    if (items.length === 0) {
+      showBackupMessage("Nothing to back up yet. Add something to your shelf first.", true);
+      return;
+    }
+    var count = items.length;
+    var text = JSON.stringify(BacklogStore.makeBackup(items), null, 2);   // 2 = indent, for readability
+
+    downloadTextFile(BacklogStore.backupFileName(new Date()), text).then(
+      function () {
+        showBackupMessage("Backup downloaded: " + countText(count) + ".", false);
+      },
+      function (error) {
+        showBackupMessage(
+          error && error.code === "declined" ? "Backup canceled." : "Couldn't save the backup file here.",
+          true
+        );
+      }
+    );
+  });
+
+  // The visible button opens the hidden file picker.
+  importButton.addEventListener("click", function () {
+    importFile.click();
+  });
+
+  importFile.addEventListener("change", function () {
+    var file = importFile.files && importFile.files[0];
+    if (!file) return;
+    if (file.size > 2000000) {   // a real backup is a few KB; this is just a sanity limit
+      showBackupMessage("That file is too big to be a backup.", true);
+      importFile.value = "";
+      return;
+    }
+    var reader = new FileReader();
+    reader.onload = function () {
+      restoreFromText(String(reader.result));
+      importFile.value = "";   // so choosing the same file again still fires "change"
+    };
+    reader.onerror = function () {
+      showBackupMessage("Couldn't read that file.", true);
+      importFile.value = "";
+    };
+    reader.readAsText(file);
+  });
+
+  // ---------------------------------------------------------------
+  // STARTUP
+  // ---------------------------------------------------------------
+  fillTypeOptions();
+  render();
+})();
+
+</script>
+</body>
+</html>
