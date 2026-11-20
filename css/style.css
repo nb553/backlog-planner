@@ -289,13 +289,50 @@ h2 {
 
 /* The health bar: a dark track with a colored fill inside.
    The fill's width comes from --pct, which app.js sets per item. */
+.health-area {
+  position: relative;
+  width: 100%;
+}
 .health-track {
   position: relative;
+  width: 100%;
   height: 1.1rem;
   background: var(--inset);
   border: 2px solid var(--paper-ink);
   border-radius: 4px;
   overflow: hidden;
+}
+.health-track.is-hit {
+  animation: health-flash 0.55s ease-out;
+}
+
+.damage-number {
+  position: absolute;
+  z-index: 2;
+  left: 50%;
+  bottom: 0;
+  color: var(--paper);
+  font-family: var(--pixel);
+  font-size: 0.55rem;
+  line-height: 1;
+  white-space: nowrap;
+  text-shadow: 0 1px 3px var(--paper-ink), 0 0 5px var(--paper-ink);
+  pointer-events: none;
+  animation: damage-rise 0.85s ease-out forwards;
+}
+.defeat-hit-overlay {
+  position: fixed;
+  z-index: 9999;
+  pointer-events: none;
+}
+
+@keyframes health-flash {
+  0%, 100% { filter: brightness(1); box-shadow: none; }
+  25% { filter: brightness(2); box-shadow: 0 0 0.8rem rgba(255, 201, 60, 0.9); }
+}
+@keyframes damage-rise {
+  from { opacity: 1; transform: translate(-50%, 0) scale(0.85); }
+  to { opacity: 0; transform: translate(-50%, -2.8rem) scale(1.1); }
 }
 
 .health-fill {
@@ -657,6 +694,31 @@ h2 {
 .achievement .delete-control {
   width: 100%;
   margin-top: 0.25rem;
+}
+.defeat-burst {
+  position: absolute;
+  z-index: 5;
+  top: 50%;
+  left: 50%;
+  width: 5rem;
+  height: 5rem;
+  background: radial-gradient(circle, transparent 0 24%, var(--paper) 27% 43%, transparent 46%);
+  clip-path: polygon(50% 0, 62% 34%, 100% 50%, 64% 62%, 50% 100%, 37% 64%, 0 50%, 36% 38%);
+  pointer-events: none;
+  animation: defeat-burst 0.75s ease-out forwards;
+}
+@keyframes defeat-burst {
+  0% { opacity: 0; transform: translate(-50%, -50%) scale(0.15) rotate(-15deg); }
+  22% { opacity: 1; transform: translate(-50%, -50%) scale(1.05) rotate(0); }
+  100% { opacity: 0; transform: translate(-50%, -50%) scale(1.4) rotate(10deg); }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .health-track.is-hit,
+  .damage-number,
+  .defeat-burst {
+    animation: none;
+  }
 }
 
 /* WATCH: a ticket stub. Two radial gradients paint half-circles in the

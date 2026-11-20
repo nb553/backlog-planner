@@ -164,6 +164,93 @@
     if (input) input.focus();
   }
 
+  // Keeps the old bar's position so a defeated item can show its final hit
+  // after render moves it from the shelf to Achievements.
+  function snapshotHealthBar(item) {
+    var card = shelf.querySelector('[data-id="' + item.id + '"]');
+    var track = card && card.querySelector(".health-track");
+    if (!track) return null;
+
+    var rect = track.getBoundingClientRect();
+    return {
+      left: rect.left,
+      top: rect.top,
+      width: rect.width,
+      height: rect.height,
+      track: track.cloneNode(true)
+    };
+  }
+
+  // Makes the little number use the amount applyDamage actually counted.
+  function makeDamageNumber(result) {
+    var number = el("span", "damage-number", "-" + result.dealt);
+    number.setAttribute("aria-hidden", "true");
+    return number;
+  }
+
+  // Removes temporary effects even if an animation is interrupted.
+  function removeAfterEffect(effect, delay) {
+    window.setTimeout(function () {
+      if (effect.parentNode) effect.parentNode.removeChild(effect);
+    }, delay);
+  }
+
+  // On a defeat, the shelf card is about to disappear, so replay its bar
+  // hit in a short-lived overlay at the same screen position.
+  function showDefeatedBarHit(oldHealthBar, result) {
+    if (!oldHealthBar) return;
+
+    var overlay = el("div", "defeat-hit-overlay");
+    overlay.setAttribute("aria-hidden", "true");
+    overlay.style.left = oldHealthBar.left + "px";
+    overlay.style.top = oldHealthBar.top + "px";
+    overlay.style.width = oldHealthBar.width + "px";
+    overlay.style.height = oldHealthBar.height + "px";
+
+    var track = oldHealthBar.track;
+    track.classList.add("is-hit");
+    track.style.width = "100%";
+    track.style.height = "100%";
+    track.setAttribute("aria-valuenow", "0");
+    var fill = track.querySelector(".health-fill");
+    if (fill) {
+      fill.style.setProperty("--pct", "0%");
+      fill.setAttribute("data-level", "low");
+    }
+
+    overlay.appendChild(track);
+    overlay.appendChild(makeDamageNumber(result));
+    document.body.appendChild(overlay);
+    removeAfterEffect(overlay, 900);
+  }
+
+  // Shows feedback after the shared Log and Quick log flow redraws the page.
+  function showLogEffects(item, result, oldHealthBar) {
+    if (prefersReducedMotion()) return;
+
+    if (result.defeated) {
+      showDefeatedBarHit(oldHealthBar, result);
+      var achievementCard = achievements.querySelector('[data-id="' + item.id + '"]');
+      if (achievementCard) {
+        var burst = el("span", "defeat-burst");
+        burst.setAttribute("aria-hidden", "true");
+        achievementCard.appendChild(burst);
+        removeAfterEffect(burst, 800);
+      }
+      return;
+    }
+
+    var cartridge = shelf.querySelector('[data-id="' + item.id + '"]');
+    var area = cartridge && cartridge.querySelector(".health-area");
+    var track = area && area.querySelector(".health-track");
+    if (!area || !track) return;
+
+    track.classList.add("is-hit");
+    var number = makeDamageNumber(result);
+    area.appendChild(number);
+    removeAfterEffect(number, 900);
+  }
+
   // Applies a log from either the minutes form or the one-tap button, then
   // follows the same save, redraw, and focus behavior for both.
   function applyLog(item, minutes, message) {
@@ -176,6 +263,10 @@
       return;
     }
 
+    var oldHealthBar = result.defeated && !prefersReducedMotion()
+      ? snapshotHealthBar(item)
+      : null;
+
     // "item" is the same object that lives in the items array, so
     // applyDamage already changed it there. Just save and redraw.
     var saved = BacklogStore.saveItems(items);
@@ -183,10 +274,12 @@
     // the wheel and unlocks Decide. (Also clear if the picked item was
     // just defeated, even when Decide wasn't locked.)
     if (locked || (search && search.pick === item && result.defeated)) resetPicker();
+    var hitMessage = describeHit(item, result);
     render(
-      describeHit(item, result) +
+      hitMessage +
         (saved ? "" : " (This browser wouldn't save it, so it will be lost when you close the tab.)")
     );
+    showLogEffects(item, result, oldHealthBar);
     // A defeated item leaves the shelf, so there's no log box to return to.
     if (result.defeated) {
       achievementsHeading.focus();
@@ -459,6 +552,7 @@
   function buildAchievement(item) {
     var li = el("li", "achievement");
     li.setAttribute("data-type", item.type);
+    li.setAttribute("data-id", item.id);
 
     li.appendChild(buildIcon(item.type));
     li.appendChild(el("p", "achievement-title", BacklogAchievements.TITLES[item.type]));
@@ -497,6 +591,7 @@
 
     // The health bar. role="progressbar" plus the aria-value attributes
     // let screen readers announce "Severance health, 450 of 450".
+    var healthArea = el("div", "health-area");
     var track = el("div", "health-track");
     track.setAttribute("role", "progressbar");
     track.setAttribute("aria-label", item.name + " health");
@@ -509,7 +604,8 @@
     // Hand the width to CSS as a custom property (--pct in style.css).
     fill.style.setProperty("--pct", percent + "%");
     track.appendChild(fill);
-    body.appendChild(track);
+    healthArea.appendChild(track);
+    body.appendChild(healthArea);
 
     body.appendChild(
       el("p", "health-text",
