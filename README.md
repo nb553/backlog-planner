@@ -8,10 +8,10 @@ Built with plain HTML, CSS, and JavaScript. No frameworks, no build step, no dep
 
 ## What it does
 
-- **Add things to your shelf.** Shows to watch, games to play, books to read, projects to build. Each one has a total size in minutes and a *minimum block*: the least time that's worth starting.
+- **Add things to your shelf.** Shows to watch, games to play, books to read, projects to build, and activities to move (walks, workouts, and going outside). Each one has a total size in minutes and a *minimum block*: the least time that's worth starting.
 - **Decide for me.** Enter your minutes and the wheel lands on a pick. You get one reroll per pick.
 - **Log minutes.** Every item is a cartridge with a health bar. Log time on it and the bar drops.
-- **Achievements.** When a bar hits zero, the item leaves the shelf and becomes a card styled by type: a ticket stub, a trophy plaque, a bookmarked page, or a blueprint.
+- **Achievements.** When a bar hits zero, the item leaves the shelf and becomes a card styled by type: a ticket stub, a trophy plaque, a bookmarked page, a blueprint, or a trail map.
 - **Edit** an item's name, type, or sizes. Time you've already logged stays logged.
 - **Delete** anything from the shelf or the achievements, with a confirm step.
 - **Back up and restore.** Download your list as a file and restore it later or on another device. Restoring only adds and updates; it never deletes.

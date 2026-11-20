@@ -69,6 +69,17 @@ test("every item type has a color and a look for each card kind", function () {
     });
   });
 });
+test("move achievement has a dashed trail-map route", function () {
+  assert.ok(/--move:\s*#51cf66/i.test(css));
+  assert.ok(/\.achievement\[data-type="move"\]::before/.test(css));
+  assert.ok(/border-top:\s*3px dashed/.test(css));
+});
+
+console.log("type display");
+test("type options capitalize labels while keeping lowercase values", function () {
+  assert.ok(/var label = type\.charAt\(0\)\.toUpperCase\(\) \+ type\.slice\(1\)/.test(app));
+  assert.ok(/option\.value = type/.test(app));
+});
 
 console.log("quick log");
 test("each cartridge can log its minimum block through the shared result flow", function () {
