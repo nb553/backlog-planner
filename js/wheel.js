@@ -16,10 +16,10 @@
   var POP_LIFT = 26;        // extra px for the landing pop-up
   var RADIUS_PERCENT = 34;  // sideways swing, as a % of the wheel's width
 
-  // A wheel with 2 or 3 candidates gets 6 slots (candidates repeat around
-  // the rim, so six divides evenly). A single candidate needs no wheel.
+  // One candidate needs no wheel. Two through six candidates fill six slots;
+  // larger pools get one slot per candidate so none are left off the drum.
   function slotCountFor(candidateCount) {
-    return candidateCount >= 2 ? 6 : 1;
+    return candidateCount >= 2 ? Math.max(6, candidateCount) : 1;
   }
 
   // How far slot "index" is from the front, in slots: 0 = front,
