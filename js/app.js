@@ -161,6 +161,37 @@
     if (input) input.focus();
   }
 
+  // Applies a log from either the minutes form or the one-tap button, then
+  // follows the same save, redraw, and focus behavior for both.
+  function applyLog(item, minutes, message) {
+    var result = BacklogStore.applyDamage(item, minutes);
+
+    if (!result.ok) {
+      // Show the problem on THIS cartridge. No redraw, so typed minutes stay.
+      message.textContent = result.error;
+      message.hidden = false;
+      return;
+    }
+
+    // "item" is the same object that lives in the items array, so
+    // applyDamage already changed it there. Just save and redraw.
+    var saved = BacklogStore.saveItems(items);
+    // Logging time completes the decide -> do -> log loop, so it clears
+    // the wheel and unlocks Decide. (Also clear if the picked item was
+    // just defeated, even when Decide wasn't locked.)
+    if (locked || (search && search.pick === item && result.defeated)) resetPicker();
+    render(
+      describeHit(item, result) +
+        (saved ? "" : " (This browser wouldn't save it, so it will be lost when you close the tab.)")
+    );
+    // A defeated item leaves the shelf, so there's no log box to return to.
+    if (result.defeated) {
+      achievementsHeading.focus();
+    } else {
+      focusLogInput(item.id);
+    }
+  }
+
   // Builds the small "minutes + Log" form that goes inside a cartridge.
   // Each cartridge gets its OWN form, and the function it listens with
   // "remembers" which item it belongs to (this is called a closure).
@@ -180,6 +211,9 @@
     var button = el("button", "log-button", "Log");
     button.type = "submit";
 
+    var quickButton = el("button", "log-button", "Quick log");
+    quickButton.type = "button";
+
     // Hidden until something goes wrong. role="alert" announces it.
     var message = el("p", "log-error");
     message.setAttribute("role", "alert");
@@ -187,40 +221,19 @@
 
     logForm.appendChild(input);
     logForm.appendChild(button);
+    logForm.appendChild(quickButton);
     logForm.appendChild(message);
+
+    quickButton.addEventListener("click", function () {
+      applyLog(item, item.minBlockMinutes, message);
+    });
 
     logForm.addEventListener("submit", function (event) {
       event.preventDefault();
 
       // Number() turns the typed text into a number (empty becomes 0,
       // which applyDamage rejects with a clear message).
-      var result = BacklogStore.applyDamage(item, Number(input.value));
-
-      if (!result.ok) {
-        // Show the problem on THIS cartridge. No redraw, so whatever the
-        // person typed stays in the box for them to fix.
-        message.textContent = result.error;
-        message.hidden = false;
-        return;
-      }
-
-      // "item" is the same object that lives in the items array, so
-      // applyDamage already changed it there. Just save and redraw.
-      var saved = BacklogStore.saveItems(items);
-      // Logging time completes the decide -> do -> log loop, so it clears
-      // the wheel and unlocks Decide. (Also clear if the picked item was
-      // just defeated, even when Decide wasn't locked.)
-      if (locked || (search && search.pick === item && result.defeated)) resetPicker();
-      render(
-        describeHit(item, result) +
-          (saved ? "" : " (This browser wouldn't save it, so it will be lost when you close the tab.)")
-      );
-      // A defeated item leaves the shelf, so there's no log box to return to.
-      if (result.defeated) {
-        achievementsHeading.focus();
-      } else {
-        focusLogInput(item.id);
-      }
+      applyLog(item, Number(input.value), message);
     });
 
     return logForm;
