@@ -22,8 +22,8 @@
   --muted: #b9b0e0;       /* secondary text on dark */
   --paper: #fff4d6;       /* cartridge label sticker */
   --paper-ink: #1b1640;   /* text on light surfaces */
-  --accent: #ff3ea5;      /* the main button */
-  --accent-shadow: #a3126b;
+  --accent: #14b8a6;      /* teal main button and accents */
+  --accent-shadow: #0f766e;
   --warn: #ffc93c;        /* focus rings and "mid" health */
   --good: #3ddc97;        /* "high" health */
   --bad: #ff5a5f;         /* errors and "low" health */
