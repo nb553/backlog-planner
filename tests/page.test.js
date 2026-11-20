@@ -70,4 +70,18 @@ test("every item type has a color and a look for each card kind", function () {
   });
 });
 
+console.log("quick log");
+test("each cartridge can log its minimum block through the shared result flow", function () {
+  assert.ok(/var quickButton = el\("button", "log-button", "Quick log"\)/.test(app));
+  assert.ok(/quickButton\.type = "button"/.test(app));
+  assert.ok(/quickButton\.addEventListener\("click", function \(\) \{\s*applyLog\(item, item\.minBlockMinutes, message\);/.test(app));
+
+  var helper = app.match(/function applyLog\(item, minutes, message\) \{([\s\S]*?)\n  \}/);
+  assert.ok(helper, "shared log handler exists");
+  assert.ok(/BacklogStore\.applyDamage\(item, minutes\)/.test(helper[1]));
+  assert.ok(/BacklogStore\.saveItems\(items\)/.test(helper[1]));
+  assert.ok(/describeHit\(item, result\)/.test(helper[1]));
+  assert.ok(/render\(/.test(helper[1]));
+});
+
 console.log("\n" + passed + " tests passed.");
