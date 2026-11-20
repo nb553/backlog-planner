@@ -34,14 +34,14 @@ The user enters how many minutes they have.
 - An item qualifies if the user's minutes are **at least its minimum useful block**.
 - Finished items (nothing remaining) are excluded.
 
-**Picking rules ("top few, then random")**
+**Picking rules ("all qualifying items, then random")**
 1. Rank qualifying items by how close their minimum block is to the minutes available.
-2. Take the closest **three**.
-3. Pick one at random.
+2. Keep every qualifying item as a candidate in ranked order.
+3. Pick one candidate at random.
 
 **Reroll**
 - The user gets **one reroll** per search.
-- The reroll picks from the remaining items in the top three and never repeats the rejected item.
+- The reroll picks from the remaining candidates and never repeats the rejected item.
 - After one reroll, the button locks until the user runs a new search.
 
 **When nothing fits**
@@ -116,7 +116,7 @@ Decided order for the optional ideas. This order replaces the numbered "Later" l
 | Nothing fits? | Show the closest fit, labeled honestly. |
 | Items with no end (habits)? | Left out of v1. |
 | Mood tags? | Removed from v1. |
-| How to choose among several fits? | Top three closest to the time, then random. |
+| How to choose among several fits? | All qualifying items, ranked by closeness, then random. |
 | Reroll? | One per search, excludes the rejected item. |
 | Press Decide again right away? | No. Decide locks after a pick until you log time on something (or delete a candidate), so the reroll can't be refreshed by re-pressing the button. In memory only, so a page reload clears it. |
 | Persistence? | Save in the browser. |
@@ -130,7 +130,7 @@ Decided order for the optional ideas. This order replaces the numbered "Later" l
 1. **Data and saving:** item structure plus load/save to local storage. ✅ Done (18 tests passing).
 2. **Add-item form and list:** fields above, with basic validation (size and minimum block must be positive numbers; minimum block cannot exceed total size). ✅ Done.
 3. **Health bars and log minutes:** show remaining, clamp at zero. ✅ Done (25 tests passing).
-4. **Time input and Decide for me:** matching, ranking, top three, random pick. ✅ Done, as a spinning cartridge wheel.
+4. **Time input and Decide for me:** matching, ranking all qualifying items, random pick. ✅ Done, as a spinning cartridge wheel.
 5. **Reroll and closest-fit fallback:** one-time reroll, honest labeling. ✅ Done (built together with step 4).
    - Follow-up round after testing: Decide locks after a pick, delete with confirm, and the Achievements section. ✅ Done.
 6. **Polish and GitHub prep:** ✅ Done. Dark native controls, notch-safe padding, tab icon and theme color, README, `npm test`, and a page-wiring test. (Empty states, 44px tap targets, and the mobile layout were built in along the way.)
@@ -160,7 +160,7 @@ backlog-planner/
     theme-arcade.css  DRAFT beat-'em-up arcade theme (not linked yet)
   js/
     storage.js        item model, validation, save/load, applyDamage
-    decide.js         Decide for me rules: matching, ranking, top three, reroll
+    decide.js         Decide for me rules: matching, ranking, reroll
     wheel.js          wheel motion math: positions, landing, easing
     achievements.js   per-type titles and pixel icons, shelf/achievements split
     app.js            add form, log forms, wheel animation, and drawing
@@ -179,7 +179,7 @@ backlog-planner/
 - **Palette:** deep indigo background, cream label stickers, teal for the main action. Cartridge colors by type: watch coral, play purple, read yellow, build blue, move green. Type badges are capitalized, and the "Starts at" and "left of" lines are italic.
 - **Type:** Press Start 2P (pixel) for title, headings, buttons, and type badges. Plain system font for names and body text so long titles stay readable.
 - **Signature element:** each item is a cartridge with a chamfered corner, grip ridges, a cream label, and a segmented health bar (green, then yellow, then red as it drains).
-- **Decide for me wheel:** inspired by spinning game-cartridge carousels. The top three candidates are repeated around a six-slot drum that spins and eases to a stop. The winner pops up out of the drum with a bounce and a glow. One candidate means no spin, just the pop. Reduced-motion users get the pick without the spin.
+- **Decide for me wheel:** inspired by spinning game-cartridge carousels. Every qualifying candidate appears at least once around the drum; two through six candidates use six slots, and larger pools get one slot per candidate. It spins and eases to a stop, then the winner pops up with a bounce and a glow. One candidate means no spin, just the pop. Reduced-motion users get the pick without the spin.
 - **Achievements:** each type gets its own card shape and pixel icon: watch is a ticket stub, play a trophy plaque, read a bookmarked page, build a blueprint, move a trail map.
 - **Note:** the pixel font loads from Google Fonts. Offline, it falls back to a monospace font and everything still works.
 

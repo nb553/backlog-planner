@@ -56,11 +56,12 @@ test("ignores defeated items, and returns null if none are left", function () {
 });
 
 console.log("startSearch");
-test("candidates are the closest three, never more", function () {
-  var items = [make("a", 10), make("b", 20), make("c", 30), make("d", 40)];
-  var s = Decide.startSearch(items, 60);
+test("all qualifying items remain candidates in ranked order", function () {
+  var items = [make("small", 15), make("closest", 30), make("next", 29), make("third", 28)];
+  var s = Decide.startSearch(items, 30, fixed(0.99));
   assert.strictEqual(s.status, "fit");
-  assert.deepStrictEqual(names(s.candidates), ["d", "c", "b"]);
+  assert.deepStrictEqual(names(s.candidates), ["closest", "next", "third", "small"]);
+  assert.strictEqual(s.pick.name, "small");
   assert.ok(s.candidates.indexOf(s.pick) !== -1);
   assert.strictEqual(s.rerollUsed, false);
 });

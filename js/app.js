@@ -720,7 +720,8 @@
     });
   }
 
-  // Fills the wheel with the candidates, repeated around the rim.
+  // Fills the wheel with every candidate at least once. Smaller pools repeat
+  // around the rim to fill the six slots.
   function setupWheel(candidates) {
     wheel.slotCount = BacklogWheel.slotCountFor(candidates.length);
     wheel.slotItems = [];

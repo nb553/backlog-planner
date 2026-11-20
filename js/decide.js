@@ -6,7 +6,8 @@
  *      its minimum block.
  *   2. Qualifying items are ranked by how close their minimum block is to
  *      your minutes (a 45m episode beats a 10m chapter when you have 60).
- *   3. The closest three are the "candidates". One is picked at random.
+ *   3. Every qualifying item is a candidate, in ranked order. One is picked
+ *      at random.
  *   4. One reroll per search, drawn from the other candidates.
  *   5. If nothing qualifies, the closest miss is offered instead.
  *
@@ -15,8 +16,6 @@
  */
 (function (root) {
   "use strict";
-
-  var TOP_COUNT = 3;
 
   // An item with nothing left is "defeated" and never gets picked.
   function isActive(item) {
@@ -69,7 +68,7 @@
   function startSearch(items, minutes, random) {
     var fits = rankFits(items, minutes);
     if (fits.length > 0) {
-      var candidates = fits.slice(0, TOP_COUNT);
+      var candidates = fits;
       return {
         status: "fit",
         minutes: minutes,
@@ -107,7 +106,6 @@
   }
 
   var BacklogDecide = {
-    TOP_COUNT: TOP_COUNT,
     validateMinutes: validateMinutes,
     rankFits: rankFits,
     closestMiss: closestMiss,

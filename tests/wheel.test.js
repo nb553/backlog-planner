@@ -10,10 +10,19 @@ function test(name, fn) { fn(); passed++; console.log("  ok  " + name); }
 function near(a, b) { return Math.abs(a - b) < 1e-9; }
 
 console.log("slotCountFor");
-test("one candidate needs no wheel; two or three get six slots", function () {
+test("one candidate needs no wheel; two through six get six slots", function () {
   assert.strictEqual(Wheel.slotCountFor(1), 1);
-  assert.strictEqual(Wheel.slotCountFor(2), 6);
-  assert.strictEqual(Wheel.slotCountFor(3), 6);
+  [2, 3, 4, 5, 6].forEach(function (count) {
+    assert.strictEqual(Wheel.slotCountFor(count), 6);
+  });
+});
+test("larger pools get one slot per candidate and can land each at the front", function () {
+  var count = Wheel.slotCountFor(9);
+  assert.strictEqual(count, 9);
+  for (var slot = 0; slot < count; slot++) {
+    var landing = Wheel.landingRotation(0, slot, count, 15);
+    assert.strictEqual(Wheel.slotOffset(slot, landing, count), 0);
+  }
 });
 
 console.log("slotOffset");
